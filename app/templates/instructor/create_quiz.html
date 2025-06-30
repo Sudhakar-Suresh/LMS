@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Create Quiz{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.quizzes') }}">Quizzes</a></li>
+            <li class="breadcrumb-item active">Create Quiz</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Create New Quiz</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('instructor.create_quiz') }}">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Quiz Title <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="title" name="title" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="course_id" class="form-label">Course <span class="text-danger">*</span></label>
+                    <select class="form-select" id="course_id" name="course_id" required>
+                        <option value="">Select a course</option>
+                        {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="module_id" class="form-label">Module (Optional)</label>
+                    <select class="form-select" id="module_id" name="module_id">
+                        <option value="">Select a module</option>
+                        <!-- Modules will be populated via JavaScript when course is selected -->
+                    </select>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="time_limit" class="form-label">Time Limit (minutes)</label>
+                            <input type="number" class="form-control" id="time_limit" name="time_limit" min="0" value="0">
+                            <div class="form-text">0 means no time limit</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="passing_score" class="form-label">Passing Score (%)</label>
+                            <input type="number" class="form-control" id="passing_score" name="passing_score" min="0" max="100" value="60">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="attempts_allowed" class="form-label">Attempts Allowed</label>
+                            <input type="number" class="form-control" id="attempts_allowed" name="attempts_allowed" min="1" value="1">
+                            <div class="form-text">-1 for unlimited attempts</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="shuffle_questions" name="shuffle_questions">
+                        <label class="form-check-label" for="shuffle_questions">
+                            Shuffle questions
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="show_correct_answers" name="show_correct_answers" checked>
+                        <label class="form-check-label" for="show_correct_answers">
+                            Show correct answers after completion
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('instructor.quizzes') }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Create Quiz</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const courseSelect = document.getElementById('course_id');
+        const moduleSelect = document.getElementById('module_id');
+        
+        courseSelect.addEventListener('change', function() {
+            const courseId = this.value;
+            moduleSelect.innerHTML = '<option value="">Select a module</option>';
+            
+            if (courseId) {
+                // Fetch modules for selected course
+                fetch(`/instructor/course/${courseId}/modules`)
+                    .then(response => response.json())
+                    .then(modules => {
+                        modules.forEach(module => {
+                            const option = document.createElement('option');
+                            option.value = module.id;
+                            option.textContent = module.title;
+                            moduleSelect.appendChild(option);
+                        });
+                    });
+            }
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('student.courses') }}">Courses</a></li>
+            <li class="breadcrumb-item active">{{ course.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                {% if course.thumbnail %}
+                    <img src="{{ url_for('static', filename='uploads/' + course.thumbnail) }}" class="card-img-top" alt="{{ course.title }}" style="max-height: 300px; object-fit: cover;">
+                {% endif %}
+                <div class="card-body">
+                    <h1 class="card-title">{{ course.title }}</h1>
+                    <div class="mb-3">
+                        {% if course.category %}
+                            <span class="badge bg-primary">{{ course.category.name }}</span>
+                        {% endif %}
+                        {% for tag in course.tags %}
+                            <span class="badge bg-secondary">{{ tag.name }}</span>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h5>Course Description</h5>
+                        <div>{{ course.description|safe }}</div>
+                    </div>
+                    
+                    {% if is_enrolled %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> You are enrolled in this course.
+                        </div>
+                        
+                        <h5 class="mt-4">Course Content</h5>
+                        <div class="accordion" id="courseContent">
+                            {% if course.modules %}
+                                {% for module in course.modules %}
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="heading{{ module.id }}">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ module.id }}" aria-expanded="false" aria-controls="collapse{{ module.id }}">
+                                                Module {{ loop.index }}: {{ module.title }}
+                                            </button>
+                                        </h2>
+                                        <div id="collapse{{ module.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ module.id }}" data-bs-parent="#courseContent">
+                                            <div class="accordion-body">
+                                                {% if module.description %}
+                                                    <p>{{ module.description }}</p>
+                                                {% endif %}
+                                                
+                                                <div class="list-group">
+                                                    {% for lesson in module.lessons %}
+                                                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                                            <span>
+                                                                <i class="fas fa-book-reader me-2"></i>
+                                                                {{ lesson.title }}
+                                                            </span>
+                                                            {% if lesson.release_days > 0 and course.enable_drip %}
+                                                                <span class="badge bg-info">Available in {{ lesson.release_days }} days</span>
+                                                            {% endif %}
+                                                        </a>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="alert alert-info">
+                                    Course content is being prepared. Check back soon!
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <form action="{{ url_for('student.enroll_course', course_id=course.id) }}" method="POST">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus"></i> Enroll in this Course
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5>Instructor</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-user-tie fa-2x me-3"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">{{ instructor.first_name }} {{ instructor.last_name }}</h6>
+                            <small class="text-muted">{{ instructor.email }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if course.prerequisites.count() > 0 %}
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5>Prerequisites</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for prereq in course.prerequisites %}
+                            <li class="list-group-item">{{ prereq.title }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Class Schedule Section - Will be updated with batch and class data -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5>Live Classes</h5>
+                </div>
+                <div class="card-body">
+                    <p>No upcoming live classes scheduled.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

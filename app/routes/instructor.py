@@ -2,7 +2,10 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from app import db
 from app.models.user import (User, UserRole, Course, Enrollment, CourseCategory,
-                             CourseTag, Module, Lesson, Topic)
+                             CourseTag, Module, Lesson, Topic, Batch, BatchEnrollment,
+                             LiveClass, Attendance, Quiz, Question, QuestionOption,
+                             QuestionAnswer, QuizAttempt, QuizResponse, Assignment,
+                             AssignmentSubmission, GradeItem, StudentGrade)
 from werkzeug.utils import secure_filename
 from functools import wraps
 import os
@@ -693,3 +696,1084 @@ def upload_file():
             return jsonify({'url': url, 'uploaded': 1, 'fileName': filename})
 
     return jsonify({'uploaded': 0, 'error': {'message': 'Upload failed'}})
+
+
+# Batch Management Routes
+@instructor.route('/batches')
+@login_required
+@instructor_required
+def batches():
+    # Get all batches for the instructor's courses
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+    course_ids = [course.id for course in instructor_courses]
+    batches = Batch.query.filter(Batch.course_id.in_(course_ids)).all()
+
+    return render_template('instructor/batches.html', batches=batches, courses=instructor_courses)
+
+
+@instructor.route('/create-batch', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def create_batch():
+    # Get instructor's courses for the dropdown
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+
+    if request.method == 'POST':
+        name = request.form.get('name')
+        course_id = request.form.get('course_id')
+        start_date = datetime.strptime(
+            request.form.get('start_date'), '%Y-%m-%d').date()
+        end_date = datetime.strptime(
+            request.form.get('end_date'), '%Y-%m-%d').date()
+        max_students = request.form.get('max_students')
+        description = request.form.get('description')
+
+        # Validate inputs
+        if not name or not course_id or not start_date or not end_date:
+            flash('Please fill all required fields.', 'danger')
+            return redirect(url_for('instructor.create_batch'))
+
+        # Check if course belongs to the instructor
+        course = Course.query.get(course_id)
+        if not course or course.instructor_id != current_user.id:
+            flash('Invalid course selected.', 'danger')
+            return redirect(url_for('instructor.create_batch'))
+
+        # Create new batch
+        batch = Batch(
+            name=name,
+            course_id=course_id,
+            start_date=start_date,
+            end_date=end_date,
+            max_students=max_students if max_students else 30,
+            description=description
+        )
+
+        db.session.add(batch)
+        db.session.commit()
+
+        flash('Batch created successfully!', 'success')
+        return redirect(url_for('instructor.batches'))
+
+    return render_template('instructor/create_batch.html', courses=instructor_courses)
+
+
+@instructor.route('/edit-batch/<int:batch_id>', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def edit_batch(batch_id):
+    batch = Batch.query.get_or_404(batch_id)
+
+    # Check if batch belongs to instructor's course
+    course = Course.query.get(batch.course_id)
+    if not course or course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this batch.', 'danger')
+        return redirect(url_for('instructor.batches'))
+
+    # Get instructor's courses for the dropdown
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+
+    if request.method == 'POST':
+        name = request.form.get('name')
+        course_id = request.form.get('course_id')
+        start_date = datetime.strptime(
+            request.form.get('start_date'), '%Y-%m-%d').date()
+        end_date = datetime.strptime(
+            request.form.get('end_date'), '%Y-%m-%d').date()
+        max_students = request.form.get('max_students')
+        description = request.form.get('description')
+
+        # Validate inputs
+        if not name or not course_id or not start_date or not end_date:
+            flash('Please fill all required fields.', 'danger')
+            return redirect(url_for('instructor.edit_batch', batch_id=batch_id))
+
+        # Check if course belongs to the instructor
+        course = Course.query.get(course_id)
+        if not course or course.instructor_id != current_user.id:
+            flash('Invalid course selected.', 'danger')
+            return redirect(url_for('instructor.edit_batch', batch_id=batch_id))
+
+        # Update batch
+        batch.name = name
+        batch.course_id = course_id
+        batch.start_date = start_date
+        batch.end_date = end_date
+        batch.max_students = max_students if max_students else 30
+        batch.description = description
+
+        db.session.commit()
+
+        flash('Batch updated successfully!', 'success')
+        return redirect(url_for('instructor.batches'))
+
+    return render_template('instructor/edit_batch.html', batch=batch, courses=instructor_courses)
+
+
+@instructor.route('/batch/<int:batch_id>/students')
+@login_required
+@instructor_required
+def batch_students(batch_id):
+    batch = Batch.query.get_or_404(batch_id)
+
+    # Check if batch belongs to instructor's course
+    course = Course.query.get(batch.course_id)
+    if not course or course.instructor_id != current_user.id:
+        flash('You do not have permission to view this batch.', 'danger')
+        return redirect(url_for('instructor.batches'))
+
+    # Get all students in the batch
+    enrollments = BatchEnrollment.query.filter_by(batch_id=batch_id).all()
+    students = []
+    for enrollment in enrollments:
+        student = User.query.get(enrollment.student_id)
+        if student:
+            students.append({
+                'id': student.id,
+                'name': f"{student.first_name} {student.last_name}",
+                'email': student.email,
+                'enrollment_date': enrollment.enrollment_date
+            })
+
+    return render_template('instructor/batch_students.html', batch=batch, students=students)
+
+
+@instructor.route('/batch/<int:batch_id>/add-student', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def add_student_to_batch(batch_id):
+    batch = Batch.query.get_or_404(batch_id)
+
+    # Check if batch belongs to instructor's course
+    course = Course.query.get(batch.course_id)
+    if not course or course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this batch.', 'danger')
+        return redirect(url_for('instructor.batches'))
+
+    if request.method == 'POST':
+        student_email = request.form.get('student_email')
+
+        # Find student by email
+        student = User.query.filter_by(
+            email=student_email, role=UserRole.STUDENT).first()
+
+        if not student:
+            flash('Student not found with this email.', 'danger')
+            return redirect(url_for('instructor.add_student_to_batch', batch_id=batch_id))
+
+        # Check if student is already enrolled in the batch
+        existing_enrollment = BatchEnrollment.query.filter_by(
+            batch_id=batch_id,
+            student_id=student.id
+        ).first()
+
+        if existing_enrollment:
+            flash('Student is already enrolled in this batch.', 'warning')
+            return redirect(url_for('instructor.batch_students', batch_id=batch_id))
+
+        # Check if batch has reached maximum capacity
+        current_enrollments = BatchEnrollment.query.filter_by(
+            batch_id=batch_id).count()
+        if current_enrollments >= batch.max_students:
+            flash('Batch has reached maximum capacity.', 'danger')
+            return redirect(url_for('instructor.batch_students', batch_id=batch_id))
+
+        # Enroll student in batch
+        enrollment = BatchEnrollment(
+            batch_id=batch_id,
+            student_id=student.id,
+            enrollment_date=datetime.utcnow()
+        )
+
+        # Also enroll in course if not already enrolled
+        course_enrollment = Enrollment.query.filter_by(
+            student_id=student.id,
+            course_id=batch.course_id
+        ).first()
+
+        if not course_enrollment:
+            course_enrollment = Enrollment(
+                student_id=student.id,
+                course_id=batch.course_id,
+                enrollment_date=datetime.utcnow()
+            )
+            db.session.add(course_enrollment)
+
+        db.session.add(enrollment)
+        db.session.commit()
+
+        flash(
+            f'Student {student.first_name} {student.last_name} added to batch successfully!', 'success')
+        return redirect(url_for('instructor.batch_students', batch_id=batch_id))
+
+    return render_template('instructor/add_student_to_batch.html', batch=batch)
+
+
+# Live Class Management Routes
+@instructor.route('/live-classes')
+@login_required
+@instructor_required
+def live_classes():
+    # Get all live classes for the instructor
+    classes = LiveClass.query.filter_by(instructor_id=current_user.id).all()
+
+    # Group classes by batch
+    classes_by_batch = {}
+    for cls in classes:
+        batch = Batch.query.get(cls.batch_id)
+        if batch:
+            if batch.id not in classes_by_batch:
+                classes_by_batch[batch.id] = {
+                    'batch': batch,
+                    'classes': []
+                }
+            classes_by_batch[batch.id]['classes'].append(cls)
+
+    return render_template('instructor/live_classes.html', classes_by_batch=classes_by_batch)
+
+
+@instructor.route('/create-live-class', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def create_live_class():
+    # Get instructor's batches for the dropdown
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+    course_ids = [course.id for course in instructor_courses]
+    batches = Batch.query.filter(Batch.course_id.in_(course_ids)).all()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        batch_id = request.form.get('batch_id')
+        start_time_str = request.form.get('start_time')
+        end_time_str = request.form.get('end_time')
+        platform = request.form.get('platform')
+        meeting_link = request.form.get('meeting_link')
+        meeting_id = request.form.get('meeting_id')
+        meeting_password = request.form.get('meeting_password')
+        description = request.form.get('description')
+        is_recurring = 'is_recurring' in request.form
+        recurrence_pattern = request.form.get(
+            'recurrence_pattern') if is_recurring else None
+
+        # Validate inputs
+        if not title or not batch_id or not start_time_str or not end_time_str or not platform:
+            flash('Please fill all required fields.', 'danger')
+            return redirect(url_for('instructor.create_live_class'))
+
+        # Parse datetime strings
+        try:
+            start_time = datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
+            end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            flash('Invalid date/time format.', 'danger')
+            return redirect(url_for('instructor.create_live_class'))
+
+        # Check if batch belongs to instructor's course
+        batch = Batch.query.get(batch_id)
+        if not batch or batch.course.instructor_id != current_user.id:
+            flash('Invalid batch selected.', 'danger')
+            return redirect(url_for('instructor.create_live_class'))
+
+        # Create new live class
+        live_class = LiveClass(
+            title=title,
+            batch_id=batch_id,
+            instructor_id=current_user.id,
+            start_time=start_time,
+            end_time=end_time,
+            platform=platform,
+            meeting_link=meeting_link,
+            meeting_id=meeting_id,
+            meeting_password=meeting_password,
+            description=description,
+            is_recurring=is_recurring,
+            recurrence_pattern=recurrence_pattern
+        )
+
+        db.session.add(live_class)
+        db.session.commit()
+
+        flash('Live class scheduled successfully!', 'success')
+        return redirect(url_for('instructor.live_classes'))
+
+    return render_template('instructor/create_live_class.html', batches=batches)
+
+
+@instructor.route('/edit-live-class/<int:class_id>', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def edit_live_class(class_id):
+    live_class = LiveClass.query.get_or_404(class_id)
+
+    # Check if class belongs to instructor
+    if live_class.instructor_id != current_user.id:
+        flash('You do not have permission to edit this class.', 'danger')
+        return redirect(url_for('instructor.live_classes'))
+
+    # Get instructor's batches for the dropdown
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+    course_ids = [course.id for course in instructor_courses]
+    batches = Batch.query.filter(Batch.course_id.in_(course_ids)).all()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        batch_id = request.form.get('batch_id')
+        start_time_str = request.form.get('start_time')
+        end_time_str = request.form.get('end_time')
+        platform = request.form.get('platform')
+        meeting_link = request.form.get('meeting_link')
+        meeting_id = request.form.get('meeting_id')
+        meeting_password = request.form.get('meeting_password')
+        description = request.form.get('description')
+        is_recurring = 'is_recurring' in request.form
+        recurrence_pattern = request.form.get(
+            'recurrence_pattern') if is_recurring else None
+
+        # Validate inputs
+        if not title or not batch_id or not start_time_str or not end_time_str or not platform:
+            flash('Please fill all required fields.', 'danger')
+            return redirect(url_for('instructor.edit_live_class', class_id=class_id))
+
+        # Parse datetime strings
+        try:
+            start_time = datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
+            end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            flash('Invalid date/time format.', 'danger')
+            return redirect(url_for('instructor.edit_live_class', class_id=class_id))
+
+        # Check if batch belongs to instructor's course
+        batch = Batch.query.get(batch_id)
+        if not batch or batch.course.instructor_id != current_user.id:
+            flash('Invalid batch selected.', 'danger')
+            return redirect(url_for('instructor.edit_live_class', class_id=class_id))
+
+        # Update live class
+        live_class.title = title
+        live_class.batch_id = batch_id
+        live_class.start_time = start_time
+        live_class.end_time = end_time
+        live_class.platform = platform
+        live_class.meeting_link = meeting_link
+        live_class.meeting_id = meeting_id
+        live_class.meeting_password = meeting_password
+        live_class.description = description
+        live_class.is_recurring = is_recurring
+        live_class.recurrence_pattern = recurrence_pattern
+
+        db.session.commit()
+
+        flash('Live class updated successfully!', 'success')
+        return redirect(url_for('instructor.live_classes'))
+
+    return render_template('instructor/edit_live_class.html', live_class=live_class, batches=batches)
+
+
+@instructor.route('/live-class/<int:class_id>/attendance', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def class_attendance(class_id):
+    live_class = LiveClass.query.get_or_404(class_id)
+
+    # Check if class belongs to instructor
+    if live_class.instructor_id != current_user.id:
+        flash('You do not have permission to view this class.', 'danger')
+        return redirect(url_for('instructor.live_classes'))
+
+    batch = Batch.query.get(live_class.batch_id)
+
+    # Get all students in the batch
+    batch_students = User.query.join(BatchEnrollment).filter(
+        BatchEnrollment.batch_id == batch.id).all()
+
+    if request.method == 'POST':
+        # Process attendance form
+        for student in batch_students:
+            status = request.form.get(f'status_{student.id}')
+            join_time_str = request.form.get(f'join_time_{student.id}')
+            leave_time_str = request.form.get(f'leave_time_{student.id}')
+
+            # Parse times if provided
+            join_time = None
+            leave_time = None
+            duration_minutes = None
+
+            if join_time_str:
+                try:
+                    join_time = datetime.strptime(join_time_str, '%H:%M')
+                    join_time = datetime.combine(
+                        live_class.start_time.date(), join_time.time())
+                except ValueError:
+                    pass
+
+            if leave_time_str:
+                try:
+                    leave_time = datetime.strptime(leave_time_str, '%H:%M')
+                    leave_time = datetime.combine(
+                        live_class.start_time.date(), leave_time.time())
+                except ValueError:
+                    pass
+
+            # Calculate duration if both times are provided
+            if join_time and leave_time:
+                duration = leave_time - join_time
+                duration_minutes = int(duration.total_seconds() / 60)
+
+            # Check if attendance record exists
+            attendance = Attendance.query.filter_by(
+                class_id=class_id, student_id=student.id).first()
+
+            if attendance:
+                # Update existing record
+                attendance.status = status
+                attendance.join_time = join_time
+                attendance.leave_time = leave_time
+                attendance.duration_minutes = duration_minutes
+            else:
+                # Create new record
+                attendance = Attendance(
+                    class_id=class_id,
+                    student_id=student.id,
+                    status=status,
+                    join_time=join_time,
+                    leave_time=leave_time,
+                    duration_minutes=duration_minutes
+                )
+                db.session.add(attendance)
+
+        db.session.commit()
+        flash('Attendance recorded successfully!', 'success')
+        return redirect(url_for('instructor.class_attendance', class_id=class_id))
+
+    # Get existing attendance records
+    attendances = {a.student_id: a for a in Attendance.query.filter_by(
+        class_id=class_id).all()}
+
+    return render_template('instructor/class_attendance.html',
+                           live_class=live_class,
+                           batch=batch,
+                           students=batch_students,
+                           attendances=attendances)
+
+
+# Quiz and Assessment Routes
+@instructor.route('/quizzes')
+@login_required
+@instructor_required
+def quizzes():
+    # Get all quizzes for courses taught by this instructor
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+    course_ids = [course.id for course in instructor_courses]
+
+    quizzes = Quiz.query.filter(Quiz.course_id.in_(
+        course_ids)).order_by(Quiz.created_at.desc()).all()
+
+    return render_template('instructor/quizzes.html', quizzes=quizzes, courses=instructor_courses)
+
+
+@instructor.route('/create-quiz', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def create_quiz():
+    # Get instructor's courses for the dropdown
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        course_id = request.form.get('course_id')
+        module_id = request.form.get('module_id') or None
+        time_limit = request.form.get('time_limit') or 0
+        passing_score = request.form.get('passing_score') or 60
+        attempts_allowed = request.form.get('attempts_allowed') or 1
+        shuffle_questions = 'shuffle_questions' in request.form
+        show_correct_answers = 'show_correct_answers' in request.form
+
+        # Create new quiz
+        new_quiz = Quiz(
+            title=title,
+            description=description,
+            course_id=course_id,
+            module_id=module_id,
+            time_limit_minutes=time_limit,
+            passing_score=passing_score,
+            attempts_allowed=attempts_allowed,
+            shuffle_questions=shuffle_questions,
+            show_correct_answers=show_correct_answers,
+            is_published=False
+        )
+
+        db.session.add(new_quiz)
+        db.session.commit()
+
+        flash('Quiz created successfully! Now add questions to your quiz.', 'success')
+        return redirect(url_for('instructor.edit_quiz', quiz_id=new_quiz.id))
+
+    return render_template('instructor/create_quiz.html', courses=instructor_courses)
+
+
+@instructor.route('/edit-quiz/<int:quiz_id>', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def edit_quiz(quiz_id):
+    quiz = Quiz.query.get_or_404(quiz_id)
+
+    # Check if instructor owns this quiz's course
+    if quiz.course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this quiz.', 'danger')
+        return redirect(url_for('instructor.quizzes'))
+
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+
+    if request.method == 'POST':
+        quiz.title = request.form.get('title')
+        quiz.description = request.form.get('description')
+        quiz.course_id = request.form.get('course_id')
+        quiz.module_id = request.form.get('module_id') or None
+        quiz.time_limit_minutes = request.form.get('time_limit') or 0
+        quiz.passing_score = request.form.get('passing_score') or 60
+        quiz.attempts_allowed = request.form.get('attempts_allowed') or 1
+        quiz.shuffle_questions = 'shuffle_questions' in request.form
+        quiz.show_correct_answers = 'show_correct_answers' in request.form
+        quiz.is_published = 'is_published' in request.form
+
+        db.session.commit()
+        flash('Quiz updated successfully!', 'success')
+        return redirect(url_for('instructor.quiz_questions', quiz_id=quiz.id))
+
+    # Get modules for the selected course
+    modules = Module.query.filter_by(course_id=quiz.course_id).all()
+
+    return render_template('instructor/edit_quiz.html',
+                           quiz=quiz,
+                           courses=instructor_courses,
+                           modules=modules)
+
+
+@instructor.route('/quiz/<int:quiz_id>/questions', methods=['GET'])
+@login_required
+@instructor_required
+def quiz_questions(quiz_id):
+    quiz = Quiz.query.get_or_404(quiz_id)
+
+    # Check if instructor owns this quiz's course
+    if quiz.course.instructor_id != current_user.id:
+        flash('You do not have permission to view this quiz.', 'danger')
+        return redirect(url_for('instructor.quizzes'))
+
+    questions = Question.query.filter_by(
+        quiz_id=quiz_id).order_by(Question.order).all()
+
+    return render_template('instructor/quiz_questions.html',
+                           quiz=quiz,
+                           questions=questions)
+
+
+@instructor.route('/quiz/<int:quiz_id>/add-question', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def add_question(quiz_id):
+    quiz = Quiz.query.get_or_404(quiz_id)
+
+    # Check if instructor owns this quiz's course
+    if quiz.course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this quiz.', 'danger')
+        return redirect(url_for('instructor.quizzes'))
+
+    if request.method == 'POST':
+        question_text = request.form.get('question_text')
+        question_type = request.form.get('question_type')
+        points = request.form.get('points') or 1.0
+        negative_points = request.form.get('negative_points') or 0.0
+        explanation = request.form.get('explanation')
+
+        # Get the highest order value
+        last_question = Question.query.filter_by(
+            quiz_id=quiz_id).order_by(Question.order.desc()).first()
+        order = (last_question.order + 1) if last_question else 1
+
+        # Create new question
+        new_question = Question(
+            quiz_id=quiz_id,
+            question_text=question_text,
+            question_type=question_type,
+            points=points,
+            negative_points=negative_points,
+            explanation=explanation,
+            order=order
+        )
+
+        db.session.add(new_question)
+        db.session.commit()
+
+        # Handle options/answers based on question type
+        if question_type == 'mcq' or question_type == 'true_false':
+            option_count = int(request.form.get('option_count', 0))
+            for i in range(1, option_count + 1):
+                option_text = request.form.get(f'option_{i}')
+                is_correct = f'correct_option_{i}' in request.form
+
+                if option_text:
+                    option = QuestionOption(
+                        question_id=new_question.id,
+                        option_text=option_text,
+                        is_correct=is_correct,
+                        order=i
+                    )
+                    db.session.add(option)
+
+        elif question_type == 'fill_blank' or question_type == 'short_answer':
+            answer_text = request.form.get('answer_text')
+            if answer_text:
+                answer = QuestionAnswer(
+                    question_id=new_question.id,
+                    answer_text=answer_text
+                )
+                db.session.add(answer)
+
+        db.session.commit()
+        flash('Question added successfully!', 'success')
+        return redirect(url_for('instructor.quiz_questions', quiz_id=quiz_id))
+
+    return render_template('instructor/add_question.html', quiz=quiz)
+
+
+@instructor.route('/question/<int:question_id>/edit', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def edit_question(question_id):
+    question = Question.query.get_or_404(question_id)
+    quiz = Quiz.query.get(question.quiz_id)
+
+    # Check if instructor owns this quiz's course
+    if quiz.course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this question.', 'danger')
+        return redirect(url_for('instructor.quizzes'))
+
+    if request.method == 'POST':
+        question.question_text = request.form.get('question_text')
+        question.points = request.form.get('points') or 1.0
+        question.negative_points = request.form.get('negative_points') or 0.0
+        question.explanation = request.form.get('explanation')
+
+        # Handle options/answers based on question type
+        if question.question_type == 'mcq' or question.question_type == 'true_false':
+            # Delete existing options
+            QuestionOption.query.filter_by(question_id=question.id).delete()
+
+            option_count = int(request.form.get('option_count', 0))
+            for i in range(1, option_count + 1):
+                option_text = request.form.get(f'option_{i}')
+                is_correct = f'correct_option_{i}' in request.form
+
+                if option_text:
+                    option = QuestionOption(
+                        question_id=question.id,
+                        option_text=option_text,
+                        is_correct=is_correct,
+                        order=i
+                    )
+                    db.session.add(option)
+
+        elif question.question_type == 'fill_blank' or question.question_type == 'short_answer':
+            # Delete existing answers
+            QuestionAnswer.query.filter_by(question_id=question.id).delete()
+
+            answer_text = request.form.get('answer_text')
+            if answer_text:
+                answer = QuestionAnswer(
+                    question_id=question.id,
+                    answer_text=answer_text
+                )
+                db.session.add(answer)
+
+        db.session.commit()
+        flash('Question updated successfully!', 'success')
+        return redirect(url_for('instructor.quiz_questions', quiz_id=question.quiz_id))
+
+    return render_template('instructor/edit_question.html',
+                           question=question,
+                           quiz=quiz,
+                           options=question.options,
+                           answer=QuestionAnswer.query.filter_by(question_id=question.id).first())
+
+
+@instructor.route('/question/<int:question_id>/delete', methods=['POST'])
+@login_required
+@instructor_required
+def delete_question(question_id):
+    question = Question.query.get_or_404(question_id)
+    quiz = Quiz.query.get(question.quiz_id)
+
+    # Check if instructor owns this quiz's course
+    if quiz.course.instructor_id != current_user.id:
+        flash('You do not have permission to delete this question.', 'danger')
+        return redirect(url_for('instructor.quizzes'))
+
+    quiz_id = question.quiz_id
+
+    # Delete the question (cascade will delete options and answers)
+    db.session.delete(question)
+    db.session.commit()
+
+    flash('Question deleted successfully!', 'success')
+    return redirect(url_for('instructor.quiz_questions', quiz_id=quiz_id))
+
+
+@instructor.route('/quiz/<int:quiz_id>/results')
+@login_required
+@instructor_required
+def quiz_results(quiz_id):
+    quiz = Quiz.query.get_or_404(quiz_id)
+
+    # Check if instructor owns this quiz's course
+    if quiz.course.instructor_id != current_user.id:
+        flash('You do not have permission to view these results.', 'danger')
+        return redirect(url_for('instructor.quizzes'))
+
+    # Get all attempts for this quiz
+    attempts = QuizAttempt.query.filter_by(quiz_id=quiz_id).order_by(
+        QuizAttempt.start_time.desc()).all()
+
+    # Group attempts by student
+    student_attempts = {}
+    for attempt in attempts:
+        student = User.query.get(attempt.student_id)
+        if student:
+            if student.id not in student_attempts:
+                student_attempts[student.id] = {
+                    'student': student,
+                    'attempts': []
+                }
+            student_attempts[student.id]['attempts'].append(attempt)
+
+    return render_template('instructor/quiz_results.html',
+                           quiz=quiz,
+                           student_attempts=student_attempts)
+
+
+@instructor.route('/quiz-attempt/<int:attempt_id>/review')
+@login_required
+@instructor_required
+def review_quiz_attempt(attempt_id):
+    attempt = QuizAttempt.query.get_or_404(attempt_id)
+    quiz = Quiz.query.get(attempt.quiz_id)
+
+    # Check if instructor owns this quiz's course
+    if quiz.course.instructor_id != current_user.id:
+        flash('You do not have permission to review this attempt.', 'danger')
+        return redirect(url_for('instructor.quizzes'))
+
+    # Get student info
+    student = User.query.get(attempt.student_id)
+
+    # Get all responses for this attempt with questions
+    responses = QuizResponse.query.filter_by(attempt_id=attempt_id).all()
+
+    # Organize responses by question
+    response_data = {}
+    for response in responses:
+        question = Question.query.get(response.question_id)
+        if question:
+            response_data[question.id] = {
+                'question': question,
+                'response': response,
+                'options': question.options if question.question_type in ['mcq', 'true_false'] else [],
+                'answer': QuestionAnswer.query.filter_by(question_id=question.id).first()
+            }
+
+    return render_template('instructor/review_quiz_attempt.html',
+                           attempt=attempt,
+                           quiz=quiz,
+                           student=student,
+                           response_data=response_data)
+
+
+@instructor.route('/quiz-response/<int:response_id>/grade', methods=['POST'])
+@login_required
+@instructor_required
+def grade_quiz_response(response_id):
+    response = QuizResponse.query.get_or_404(response_id)
+    attempt = QuizAttempt.query.get(response.attempt_id)
+    quiz = Quiz.query.get(attempt.quiz_id)
+
+    # Check if instructor owns this quiz's course
+    if quiz.course.instructor_id != current_user.id:
+        flash('You do not have permission to grade this response.', 'danger')
+        return redirect(url_for('instructor.quizzes'))
+
+    # Update the response with instructor feedback and score
+    is_correct = 'is_correct' in request.form
+    points_earned = float(request.form.get('points_earned') or 0)
+    instructor_feedback = request.form.get('instructor_feedback')
+
+    response.is_correct = is_correct
+    response.points_earned = points_earned
+    response.instructor_feedback = instructor_feedback
+
+    db.session.commit()
+
+    # Recalculate the overall quiz score
+    total_points = 0
+    max_points = 0
+
+    for resp in QuizResponse.query.filter_by(attempt_id=attempt.id).all():
+        question = Question.query.get(resp.question_id)
+        if question:
+            total_points += resp.points_earned
+            max_points += question.points
+
+    attempt.score = total_points
+    attempt.max_score = max_points
+    attempt.percentage = (total_points / max_points *
+                          100) if max_points > 0 else 0
+    attempt.is_passed = attempt.percentage >= quiz.passing_score
+
+    db.session.commit()
+
+    flash('Response graded successfully!', 'success')
+    return redirect(url_for('instructor.review_quiz_attempt', attempt_id=attempt.id))
+
+
+# Assignment Routes
+@instructor.route('/assignments')
+@login_required
+@instructor_required
+def assignments():
+    # Get all assignments for courses taught by this instructor
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+    course_ids = [course.id for course in instructor_courses]
+
+    assignments = Assignment.query.filter(Assignment.course_id.in_(
+        course_ids)).order_by(Assignment.created_at.desc()).all()
+
+    return render_template('instructor/assignments.html', assignments=assignments, courses=instructor_courses)
+
+
+@instructor.route('/create-assignment', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def create_assignment():
+    # Get instructor's courses for the dropdown
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        course_id = request.form.get('course_id')
+        module_id = request.form.get('module_id') or None
+        due_date_str = request.form.get('due_date')
+        max_points = request.form.get('max_points') or 100
+        allowed_extensions = request.form.get(
+            'allowed_extensions') or 'pdf,doc,docx,zip'
+        max_file_size = request.form.get('max_file_size') or 10
+        plagiarism_check = 'plagiarism_check' in request.form
+
+        # Parse due date
+        due_date = None
+        if due_date_str:
+            try:
+                due_date = datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                flash('Invalid date format. Please use the date picker.', 'danger')
+                return redirect(url_for('instructor.create_assignment'))
+
+        # Create new assignment
+        new_assignment = Assignment(
+            title=title,
+            description=description,
+            course_id=course_id,
+            module_id=module_id,
+            created_by_id=current_user.id,
+            due_date=due_date,
+            max_points=max_points,
+            allowed_file_extensions=allowed_extensions,
+            max_file_size_mb=max_file_size,
+            plagiarism_check=plagiarism_check
+        )
+
+        db.session.add(new_assignment)
+        db.session.commit()
+
+        # Create grade item for this assignment
+        grade_item = GradeItem(
+            course_id=course_id,
+            title=title,
+            description=f"Assignment: {title}",
+            item_type='assignment',
+            max_points=max_points,
+            assignment_id=new_assignment.id,
+            due_date=due_date
+        )
+
+        db.session.add(grade_item)
+        db.session.commit()
+
+        flash('Assignment created successfully!', 'success')
+        return redirect(url_for('instructor.assignments'))
+
+    return render_template('instructor/create_assignment.html', courses=instructor_courses)
+
+
+@instructor.route('/edit-assignment/<int:assignment_id>', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def edit_assignment(assignment_id):
+    assignment = Assignment.query.get_or_404(assignment_id)
+
+    # Check if instructor owns this assignment
+    if assignment.created_by_id != current_user.id:
+        flash('You do not have permission to edit this assignment.', 'danger')
+        return redirect(url_for('instructor.assignments'))
+
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+
+    if request.method == 'POST':
+        assignment.title = request.form.get('title')
+        assignment.description = request.form.get('description')
+        assignment.course_id = request.form.get('course_id')
+        assignment.module_id = request.form.get('module_id') or None
+        due_date_str = request.form.get('due_date')
+        assignment.max_points = request.form.get('max_points') or 100
+        assignment.allowed_file_extensions = request.form.get(
+            'allowed_extensions') or 'pdf,doc,docx,zip'
+        assignment.max_file_size_mb = request.form.get('max_file_size') or 10
+        assignment.plagiarism_check = 'plagiarism_check' in request.form
+
+        # Parse due date
+        if due_date_str:
+            try:
+                assignment.due_date = datetime.strptime(
+                    due_date_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                flash('Invalid date format. Please use the date picker.', 'danger')
+                return redirect(url_for('instructor.edit_assignment', assignment_id=assignment_id))
+        else:
+            assignment.due_date = None
+
+        db.session.commit()
+
+        # Update corresponding grade item
+        grade_item = GradeItem.query.filter_by(
+            assignment_id=assignment_id).first()
+        if grade_item:
+            grade_item.title = assignment.title
+            grade_item.description = f"Assignment: {assignment.title}"
+            grade_item.course_id = assignment.course_id
+            grade_item.max_points = assignment.max_points
+            grade_item.due_date = assignment.due_date
+            db.session.commit()
+
+        flash('Assignment updated successfully!', 'success')
+        return redirect(url_for('instructor.assignments'))
+
+    # Get modules for the selected course
+    modules = Module.query.filter_by(course_id=assignment.course_id).all()
+
+    return render_template('instructor/edit_assignment.html',
+                           assignment=assignment,
+                           courses=instructor_courses,
+                           modules=modules)
+
+
+@instructor.route('/assignment/<int:assignment_id>/submissions')
+@login_required
+@instructor_required
+def assignment_submissions(assignment_id):
+    assignment = Assignment.query.get_or_404(assignment_id)
+
+    # Check if instructor owns this assignment
+    if assignment.created_by_id != current_user.id:
+        flash('You do not have permission to view these submissions.', 'danger')
+        return redirect(url_for('instructor.assignments'))
+
+    # Get all submissions for this assignment
+    submissions = AssignmentSubmission.query.filter_by(
+        assignment_id=assignment_id).order_by(AssignmentSubmission.submitted_at.desc()).all()
+
+    # Get student info for each submission
+    submission_data = []
+    for submission in submissions:
+        student = User.query.get(submission.student_id)
+        if student:
+            submission_data.append({
+                'submission': submission,
+                'student': student
+            })
+
+    return render_template('instructor/assignment_submissions.html',
+                           assignment=assignment,
+                           submission_data=submission_data)
+
+
+@instructor.route('/submission/<int:submission_id>/grade', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def grade_submission(submission_id):
+    submission = AssignmentSubmission.query.get_or_404(submission_id)
+    assignment = Assignment.query.get(submission.assignment_id)
+
+    # Check if instructor owns this assignment
+    if assignment.created_by_id != current_user.id:
+        flash('You do not have permission to grade this submission.', 'danger')
+        return redirect(url_for('instructor.assignments'))
+
+    student = User.query.get(submission.student_id)
+
+    if request.method == 'POST':
+        points = request.form.get('points')
+        feedback = request.form.get('feedback')
+
+        submission.points = points
+        submission.feedback = feedback
+        submission.graded_by_id = current_user.id
+        submission.graded_at = datetime.now()
+
+        db.session.commit()
+
+        # Update corresponding grade item
+        grade_item = GradeItem.query.filter_by(
+            assignment_id=assignment.id).first()
+        if grade_item:
+            # Check if student grade exists
+            student_grade = StudentGrade.query.filter_by(
+                grade_item_id=grade_item.id,
+                student_id=student.id
+            ).first()
+
+            if student_grade:
+                student_grade.points = points
+                student_grade.feedback = feedback
+                student_grade.graded_by_id = current_user.id
+                student_grade.graded_at = datetime.now()
+            else:
+                student_grade = StudentGrade(
+                    grade_item_id=grade_item.id,
+                    student_id=student.id,
+                    points=points,
+                    feedback=feedback,
+                    graded_by_id=current_user.id,
+                    graded_at=datetime.now()
+                )
+                db.session.add(student_grade)
+
+            db.session.commit()
+
+        flash('Submission graded successfully!', 'success')
+        return redirect(url_for('instructor.assignment_submissions', assignment_id=assignment.id))
+
+    return render_template('instructor/grade_submission.html',
+                           submission=submission,
+                           assignment=assignment,
+                           student=student)

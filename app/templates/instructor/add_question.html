@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}Add Question{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.quizzes') }}">Quizzes</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.quiz_questions', quiz_id=quiz.id) }}">{{ quiz.title }}</a></li>
+            <li class="breadcrumb-item active">Add Question</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Add Question</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('instructor.add_question', quiz_id=quiz.id) }}" id="questionForm">
+                <div class="mb-3">
+                    <label for="question_text" class="form-label">Question <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="question_text" name="question_text" rows="3" required></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="question_type" class="form-label">Question Type <span class="text-danger">*</span></label>
+                    <select class="form-select" id="question_type" name="question_type" required>
+                        <option value="mcq">Multiple Choice</option>
+                        <option value="true_false">True/False</option>
+                        <option value="fill_blank">Fill in the Blank</option>
+                        <option value="short_answer">Short Answer</option>
+                    </select>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="points" class="form-label">Points <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="points" name="points" min="0" step="0.5" value="1.0" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="negative_points" class="form-label">Negative Points (for wrong answer)</label>
+                            <input type="number" class="form-control" id="negative_points" name="negative_points" min="0" step="0.5" value="0.0">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="explanation" class="form-label">Explanation (Optional)</label>
+                    <textarea class="form-control" id="explanation" name="explanation" rows="2"></textarea>
+                    <div class="form-text">Explanation will be shown to students after quiz completion if "Show Correct Answers" is enabled.</div>
+                </div>
+                
+                <!-- Multiple Choice Options -->
+                <div id="mcq-options" class="mb-3">
+                    <label class="form-label">Options <span class="text-danger">*</span></label>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Check the box next to the correct option(s).
+                    </div>
+                    <input type="hidden" name="option_count" id="option_count" value="4">
+                    
+                    <div id="options-container">
+                        <div class="mb-2 option-row">
+                            <div class="input-group">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0" type="checkbox" name="correct_option_1">
+                                </div>
+                                <input type="text" class="form-control" name="option_1" placeholder="Option 1" required>
+                                <button type="button" class="btn btn-outline-danger remove-option" disabled>
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2 option-row">
+                            <div class="input-group">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0" type="checkbox" name="correct_option_2">
+                                </div>
+                                <input type="text" class="form-control" name="option_2" placeholder="Option 2" required>
+                                <button type="button" class="btn btn-outline-danger remove-option" disabled>
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2 option-row">
+                            <div class="input-group">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0" type="checkbox" name="correct_option_3">
+                                </div>
+                                <input type="text" class="form-control" name="option_3" placeholder="Option 3" required>
+                                <button type="button" class="btn btn-outline-danger remove-option">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2 option-row">
+                            <div class="input-group">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0" type="checkbox" name="correct_option_4">
+                                </div>
+                                <input type="text" class="form-control" name="option_4" placeholder="Option 4" required>
+                                <button type="button" class="btn btn-outline-danger remove-option">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="add-option" class="btn btn-outline-secondary mt-2">
+                        <i class="fas fa-plus"></i> Add Option
+                    </button>
+                </div>
+                
+                <!-- True/False Options -->
+                <div id="true-false-options" class="mb-3" style="display: none;">
+                    <label class="form-label">Select the correct answer:</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="tf_answer" id="tf_true" value="true" checked>
+                        <label class="form-check-label" for="tf_true">True</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="tf_answer" id="tf_false" value="false">
+                        <label class="form-check-label" for="tf_false">False</label>
+                    </div>
+                </div>
+                
+                <!-- Fill in the Blank Answer -->
+                <div id="fill-blank-answer" class="mb-3" style="display: none;">
+                    <label for="answer_text" class="form-label">Correct Answer <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="fill_blank_answer" name="answer_text">
+                    <div class="form-text">Enter the exact text that students must type to get this question correct.</div>
+                </div>
+                
+                <!-- Short Answer (will be manually graded) -->
+                <div id="short-answer-info" class="mb-3" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Short answer questions will need to be manually graded.
+                    </div>
+                    <label for="sample_answer" class="form-label">Sample Answer (Optional)</label>
+                    <textarea class="form-control" id="sample_answer" name="answer_text" rows="2"></textarea>
+                    <div class="form-text">This will be used as a reference when grading student responses.</div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a href="{{ url_for('instructor.quiz_questions', quiz_id=quiz.id) }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Question</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const questionTypeSelect = document.getElementById('question_type');
+        const mcqOptions = document.getElementById('mcq-options');
+        const trueFalseOptions = document.getElementById('true-false-options');
+        const fillBlankAnswer = document.getElementById('fill-blank-answer');
+        const shortAnswerInfo = document.getElementById('short-answer-info');
+        const optionsContainer = document.getElementById('options-container');
+        const addOptionBtn = document.getElementById('add-option');
+        const optionCountInput = document.getElementById('option_count');
+        const questionForm = document.getElementById('questionForm');
+        
+        // Function to update form based on question type
+        function updateFormFields() {
+            const questionType = questionTypeSelect.value;
+            
+            // Hide all option/answer sections
+            mcqOptions.style.display = 'none';
+            trueFalseOptions.style.display = 'none';
+            fillBlankAnswer.style.display = 'none';
+            shortAnswerInfo.style.display = 'none';
+            
+            // Show the appropriate section based on question type
+            if (questionType === 'mcq') {
+                mcqOptions.style.display = 'block';
+            } else if (questionType === 'true_false') {
+                trueFalseOptions.style.display = 'block';
+                
+                // Set up true/false options in the MCQ format for backend processing
+                optionCountInput.value = 2;
+                
+                // Clear existing options and add True/False
+                optionsContainer.innerHTML = '';
+                
+                // Add True option
+                const trueOption = document.createElement('div');
+                trueOption.className = 'mb-2 option-row';
+                trueOption.innerHTML = `
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" name="correct_option_1" ${document.getElementById('tf_true').checked ? 'checked' : ''}>
+                        </div>
+                        <input type="text" class="form-control" name="option_1" value="True" readonly>
+                        <button type="button" class="btn btn-outline-danger remove-option" disabled>
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Add False option
+                const falseOption = document.createElement('div');
+                falseOption.className = 'mb-2 option-row';
+                falseOption.innerHTML = `
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" name="correct_option_2" ${document.getElementById('tf_false').checked ? 'checked' : ''}>
+                        </div>
+                        <input type="text" class="form-control" name="option_2" value="False" readonly>
+                        <button type="button" class="btn btn-outline-danger remove-option" disabled>
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                
+                optionsContainer.appendChild(trueOption);
+                optionsContainer.appendChild(falseOption);
+                
+                // Hide add option button for true/false
+                addOptionBtn.style.display = 'none';
+            } else if (questionType === 'fill_blank') {
+                fillBlankAnswer.style.display = 'block';
+            } else if (questionType === 'short_answer') {
+                shortAnswerInfo.style.display = 'block';
+            }
+        }
+        
+        // Initialize form based on default question type
+        updateFormFields();
+        
+        // Update form when question type changes
+        questionTypeSelect.addEventListener('change', updateFormFields);
+        
+        // Add option button functionality
+        addOptionBtn.addEventListener('click', function() {
+            const optionRows = document.querySelectorAll('.option-row');
+            const nextOptionNum = optionRows.length + 1;
+            
+            const newOption = document.createElement('div');
+            newOption.className = 'mb-2 option-row';
+            newOption.innerHTML = `
+                <div class="input-group">
+                    <div class="input-group-text">
+                        <input class="form-check-input mt-0" type="checkbox" name="correct_option_${nextOptionNum}">
+                    </div>
+                    <input type="text" class="form-control" name="option_${nextOptionNum}" placeholder="Option ${nextOptionNum}" required>
+                    <button type="button" class="btn btn-outline-danger remove-option">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            optionsContainer.appendChild(newOption);
+            optionCountInput.value = nextOptionNum;
+            
+            // Add event listener to the new remove button
+            const removeBtn = newOption.querySelector('.remove-option');
+            removeBtn.addEventListener('click', function() {
+                removeOption(newOption);
+            });
+        });
+        
+        // Remove option functionality
+        function removeOption(optionRow) {
+            optionRow.remove();
+            
+            // Update option numbers and names
+            const optionRows = document.querySelectorAll('.option-row');
+            optionCountInput.value = optionRows.length;
+            
+            optionRows.forEach((row, index) => {
+                const optionNum = index + 1;
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                const textInput = row.querySelector('input[type="text"]');
+                
+                checkbox.name = `correct_option_${optionNum}`;
+                textInput.name = `option_${optionNum}`;
+                textInput.placeholder = `Option ${optionNum}`;
+                
+                // Disable remove button if only 2 options remain
+                const removeBtn = row.querySelector('.remove-option');
+                removeBtn.disabled = optionRows.length <= 2;
+            });
+        }
+        
+        // Add event listeners to existing remove buttons
+        document.querySelectorAll('.remove-option').forEach(btn => {
+            btn.addEventListener('click', function() {
+                removeOption(btn.closest('.option-row'));
+            });
+        });
+        
+        // Update true/false options when radio buttons change
+        document.getElementById('tf_true').addEventListener('change', function() {
+            if (questionTypeSelect.value === 'true_false') {
+                document.querySelector('input[name="correct_option_1"]').checked = true;
+                document.querySelector('input[name="correct_option_2"]').checked = false;
+            }
+        });
+        
+        document.getElementById('tf_false').addEventListener('change', function() {
+            if (questionTypeSelect.value === 'true_false') {
+                document.querySelector('input[name="correct_option_1"]').checked = false;
+                document.querySelector('input[name="correct_option_2"]').checked = true;
+            }
+        });
+        
+        // Form validation before submission
+        questionForm.addEventListener('submit', function(event) {
+            const questionType = questionTypeSelect.value;
+            
+            if (questionType === 'mcq') {
+                // Check if at least one option is marked as correct
+                const correctOptions = document.querySelectorAll('input[type="checkbox"][name^="correct_option_"]:checked');
+                if (correctOptions.length === 0) {
+                    event.preventDefault();
+                    alert('Please mark at least one option as correct.');
+                }
+            } else if (questionType === 'fill_blank') {
+                // Check if answer is provided
+                const answerText = document.getElementById('fill_blank_answer').value.trim();
+                if (!answerText) {
+                    event.preventDefault();
+                    alert('Please provide the correct answer for the fill in the blank question.');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

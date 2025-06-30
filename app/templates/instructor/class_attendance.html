@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Class Attendance{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.live_classes') }}">Live Classes</a></li>
+            <li class="breadcrumb-item active">Attendance</li>
+        </ol>
+    </nav>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>{{ live_class.title }}</h2>
+                {% if live_class.platform == 'zoom' %}
+                    <span class="badge bg-primary">Zoom</span>
+                {% elif live_class.platform == 'google_meet' %}
+                    <span class="badge bg-success">Google Meet</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ live_class.platform }}</span>
+                {% endif %}
+            </div>
+            <p class="text-muted mb-0">
+                {{ live_class.start_time.strftime('%A, %d %B %Y') }} | 
+                {{ live_class.start_time.strftime('%I:%M %p') }} - {{ live_class.end_time.strftime('%I:%M %p') }}
+            </p>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Batch:</strong> {{ batch.name }}</p>
+                    <p><strong>Course:</strong> {{ batch.course.title }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Total Students:</strong> {{ students|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Attendance Record</h3>
+        </div>
+        <div class="card-body">
+            {% if students %}
+                <form method="POST" action="{{ url_for('instructor.class_attendance', class_id=live_class.id) }}">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 5%">#</th>
+                                    <th style="width: 30%">Student</th>
+                                    <th style="width: 15%">Status</th>
+                                    <th style="width: 15%">Join Time</th>
+                                    <th style="width: 15%">Leave Time</th>
+                                    <th style="width: 20%">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ student.first_name }} {{ student.last_name }}</td>
+                                        <td>
+                                            <select class="form-select form-select-sm" name="status_{{ student.id }}">
+                                                <option value="present" {% if student.id in attendances and attendances[student.id].status == 'present' %}selected{% endif %}>Present</option>
+                                                <option value="absent" {% if student.id in attendances and attendances[student.id].status == 'absent' %}selected{% endif %}>Absent</option>
+                                                <option value="late" {% if student.id in attendances and attendances[student.id].status == 'late' %}selected{% endif %}>Late</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="time" class="form-control form-control-sm" name="join_time_{{ student.id }}" 
+                                                value="{{ attendances[student.id].join_time.strftime('%H:%M') if student.id in attendances and attendances[student.id].join_time else '' }}">
+                                        </td>
+                                        <td>
+                                            <input type="time" class="form-control form-control-sm" name="leave_time_{{ student.id }}"
+                                                value="{{ attendances[student.id].leave_time.strftime('%H:%M') if student.id in attendances and attendances[student.id].leave_time else '' }}">
+                                        </td>
+                                        <td>
+                                            <div class="form-text small">
+                                                {% if student.id in attendances and attendances[student.id].duration_minutes %}
+                                                    Duration: {{ attendances[student.id].duration_minutes }} minutes
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Attendance
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <div class="alert alert-info">
+                    <p>No students are enrolled in this batch.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

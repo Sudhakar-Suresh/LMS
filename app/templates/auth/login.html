@@ -12,8 +12,8 @@
             <div class="card-body">
                 <form method="POST" action="{{ url_for('auth.login') }}">
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email address</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                        <label for="username" class="form-label">Username or Email</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
@@ -30,6 +30,63 @@
             </div>
             <div class="card-footer text-center">
                 <p class="mb-0">Don't have an account? <a href="{{ url_for('auth.register') }}">Register</a></p>
+            </div>
+        </div>
+        
+        <!-- Demo Login Information -->
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Demo Login Credentials</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Role</th>
+                                <th>Username</th>
+                                <th>Password</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Admin</td>
+                                <td>admin</td>
+                                <td>admin123</td>
+                            </tr>
+                            <tr>
+                                <td>Instructor</td>
+                                <td>instructor1</td>
+                                <td>instructor123</td>
+                            </tr>
+                            <tr>
+                                <td>Instructor</td>
+                                <td>instructor2</td>
+                                <td>instructor123</td>
+                            </tr>
+                            <tr>
+                                <td>Student</td>
+                                <td>student1</td>
+                                <td>student123</td>
+                            </tr>
+                            <tr>
+                                <td>Student</td>
+                                <td>student2</td>
+                                <td>student123</td>
+                            </tr>
+                            <tr>
+                                <td>Parent</td>
+                                <td>parent</td>
+                                <td>parent123</td>
+                            </tr>
+                            <tr>
+                                <td>Guest</td>
+                                <td>guest</td>
+                                <td>guest123</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}{{ live_class.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('student.classes') }}">Classes</a></li>
+            <li class="breadcrumb-item active">{{ live_class.title }}</li>
+        </ol>
+    </nav>
+    
+    <div class="card">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>{{ live_class.title }}</h2>
+                {% if live_class.platform == 'zoom' %}
+                    <span class="badge bg-primary">Zoom</span>
+                {% elif live_class.platform == 'google_meet' %}
+                    <span class="badge bg-success">Google Meet</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ live_class.platform }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-4">
+                        <h5>Class Details</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 30%">Date</th>
+                                        <td>{{ live_class.start_time.strftime('%A, %d %B %Y') }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Time</th>
+                                        <td>{{ live_class.start_time.strftime('%I:%M %p') }} - {{ live_class.end_time.strftime('%I:%M %p') }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Duration</th>
+                                        <td>{{ (live_class.end_time - live_class.start_time).total_seconds() // 60 }} minutes</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Course</th>
+                                        <td>{{ course.title }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Batch</th>
+                                        <td>{{ batch.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Instructor</th>
+                                        <td>{{ instructor.first_name }} {{ instructor.last_name }}</td>
+                                    </tr>
+                                    {% if live_class.is_recurring %}
+                                    <tr>
+                                        <th>Recurrence</th>
+                                        <td>{{ live_class.recurrence_pattern }}</td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {% if live_class.description %}
+                    <div class="mb-4">
+                        <h5>Description</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                {{ live_class.description|safe }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if is_past and attendance %}
+                    <div class="mb-4">
+                        <h5>Your Attendance</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        {% if attendance.status == 'present' %}
+                                            <div class="badge bg-success p-2">
+                                                <i class="fas fa-check-circle fa-2x"></i>
+                                            </div>
+                                        {% elif attendance.status == 'absent' %}
+                                            <div class="badge bg-danger p-2">
+                                                <i class="fas fa-times-circle fa-2x"></i>
+                                            </div>
+                                        {% elif attendance.status == 'late' %}
+                                            <div class="badge bg-warning p-2">
+                                                <i class="fas fa-exclamation-circle fa-2x"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h4>
+                                            {% if attendance.status == 'present' %}
+                                                Present
+                                            {% elif attendance.status == 'absent' %}
+                                                Absent
+                                            {% elif attendance.status == 'late' %}
+                                                Late
+                                            {% endif %}
+                                        </h4>
+                                        {% if attendance.join_time %}
+                                            <p class="mb-0">Joined at: {{ attendance.join_time.strftime('%I:%M %p') }}</p>
+                                        {% endif %}
+                                        {% if attendance.leave_time %}
+                                            <p class="mb-0">Left at: {{ attendance.leave_time.strftime('%I:%M %p') }}</p>
+                                        {% endif %}
+                                        {% if attendance.duration_minutes %}
+                                            <p class="mb-0">Duration: {{ attendance.duration_minutes }} minutes</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4">
+                    {% if not is_past %}
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Join Class</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if live_class.meeting_link %}
+                                    <p>Click the button below to join the live class:</p>
+                                    <a href="{{ live_class.meeting_link }}" target="_blank" class="btn btn-success btn-lg w-100">
+                                        <i class="fas fa-video me-2"></i> Join Now
+                                    </a>
+                                    
+                                    {% if live_class.meeting_id or live_class.meeting_password %}
+                                        <hr>
+                                        <div class="small">
+                                            {% if live_class.meeting_id %}
+                                                <p class="mb-1"><strong>Meeting ID:</strong> {{ live_class.meeting_id }}</p>
+                                            {% endif %}
+                                            {% if live_class.meeting_password %}
+                                                <p class="mb-0"><strong>Password:</strong> {{ live_class.meeting_password }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="alert alert-warning">
+                                        <p>Meeting link is not available yet. Please check back closer to the class time.</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Related Course</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>{{ course.title }}</h6>
+                            <p class="text-muted small">
+                                {% if course.description %}
+                                    {{ course.description|striptags|truncate(100) }}
+                                {% else %}
+                                    No description available.
+                                {% endif %}
+                            </p>
+                            <a href="{{ url_for('student.course_details', course_id=course.id) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-book"></i> Go to Course
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

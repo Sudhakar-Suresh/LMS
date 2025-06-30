@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Create Role - Learning Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Create New Role</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.create_role') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Role Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="form-text">
+                                Role name should be unique and descriptive (e.g., "content_manager", "course_reviewer").
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            <div class="form-text">
+                                Provide a brief description of what this role is responsible for.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Permissions</label>
+                            <div class="card">
+                                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                    {% if permissions %}
+                                    <div class="row">
+                                        {% for permission in permissions %}
+                                        <div class="col-md-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="permissions" value="{{ permission.id }}" id="permission{{ permission.id }}">
+                                                <label class="form-check-label" for="permission{{ permission.id }}">
+                                                    {{ permission.name }}
+                                                    <small class="d-block text-muted">{{ permission.description }}</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-info">
+                                        <p class="mb-0">No permissions defined yet. <a href="{{ url_for('admin.create_permission') }}">Create permissions</a> first.</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin.roles_permissions') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Create Role</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

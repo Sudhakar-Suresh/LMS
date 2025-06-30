@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Import Users - Learning Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Bulk Import Users</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Instructions</h5>
+                        <p>Upload a CSV or Excel file with the following columns:</p>
+                        <ul>
+                            <li><strong>username</strong> (required): Unique username for the user</li>
+                            <li><strong>email</strong> (required): Unique email address</li>
+                            <li><strong>first_name</strong> (required): User's first name</li>
+                            <li><strong>last_name</strong> (required): User's last name</li>
+                            <li><strong>role</strong> (required): One of 'admin', 'instructor', 'student', 'parent', or 'guest'</li>
+                            <li><strong>password</strong> (required): Initial password for the user</li>
+                            <li><strong>phone_number</strong> (optional): User's phone number</li>
+                            <li><strong>address</strong> (optional): User's address</li>
+                            <li><strong>city</strong> (optional): User's city</li>
+                            <li><strong>state</strong> (optional): User's state/province</li>
+                            <li><strong>country</strong> (optional): User's country</li>
+                            <li><strong>postal_code</strong> (optional): User's postal/ZIP code</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('admin.bulk_import_users') }}" enctype="multipart/form-data" class="mt-4">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Select File (CSV or Excel)</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".csv, .xlsx" required>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Upload and Import</button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-4">
+                        <h5>Sample Templates</h5>
+                        <p>Download a sample template to get started:</p>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('static', filename='templates/bulk_import_users_template.csv') }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-download me-1"></i> CSV Template
+                            </a>
+                            <a href="{{ url_for('static', filename='templates/bulk_import_users_template.xlsx') }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-download me-1"></i> Excel Template
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Import History</h5>
+                </div>
+                <div class="card-body">
+                    <p>View your <a href="{{ url_for('admin.import_history') }}">import history</a> to check the status of previous imports.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Create New Batch{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.batches') }}">Batches</a></li>
+            <li class="breadcrumb-item active">Create New Batch</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Create New Batch</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('instructor.create_batch') }}">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Batch Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                    <div class="form-text">Example: "Morning Batch 2023", "Weekend Batch July"</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="course_id" class="form-label">Course <span class="text-danger">*</span></label>
+                    <select class="form-select" id="course_id" name="course_id" required>
+                        <option value="">Select a course</option>
+                        {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label">End Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="max_students" class="form-label">Maximum Students</label>
+                    <input type="number" class="form-control" id="max_students" name="max_students" value="30" min="1">
+                    <div class="form-text">Maximum number of students allowed in this batch</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    <div class="form-text">Additional information about the batch (schedule, requirements, etc.)</div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('instructor.batches') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Create Batch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set minimum date for start date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('start_date').setAttribute('min', today);
+        
+        // Update end date min value when start date changes
+        document.getElementById('start_date').addEventListener('change', function() {
+            document.getElementById('end_date').setAttribute('min', this.value);
+            
+            // If end date is before start date, update it
+            if (document.getElementById('end_date').value < this.value) {
+                document.getElementById('end_date').value = this.value;
+            }
+        });
+    });
+</script>
+{% endblock %} 

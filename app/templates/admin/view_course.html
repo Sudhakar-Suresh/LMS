@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}View Course{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Course Details</h1>
+        <div>
+            <a href="{{ url_for(''admin.edit_course'', course_id=course.id) }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Edit Course
+            </a>
+            <a href="{{ url_for(''admin.courses'') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Courses
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Title:</div>
+                        <div class="col-md-9">{{ course.title }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Instructor:</div>
+                        <div class="col-md-9">{{ course.instructor.get_full_name() }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Category:</div>
+                        <div class="col-md-9">{{ course.category.name if course.category else ''No Category'' }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Status:</div>
+                        <div class="col-md-9">
+                            {% if course.is_published %}
+                            <span class="badge bg-success">Published</span>
+                            {% else %}
+                            <span class="badge bg-warning">Draft</span>
+                            {% endif %}
+                            {% if course.is_featured %}
+                            <span class="badge bg-info ms-2">Featured</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Created:</div>
+                        <div class="col-md-9">{{ course.created_at.strftime(''%Y-%m-%d %H:%M'') }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Enrollments:</div>
+                        <div class="col-md-9">{{ enrollment_count }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Description</h5>
+                </div>
+                <div class="card-body">
+                    {% if course.description %}
+                    <p>{{ course.description }}</p>
+                    {% else %}
+                    <p class="text-muted">No description provided.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Course Modules</h5>
+                    <a href="{{ url_for(''admin.courses'') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> Add Module
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if course.modules %}
+                    <div class="list-group">
+                        {% for module in course.modules %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ module.title }}</h5>
+                                <small>{{ module.lessons|length }} lessons</small>
+                            </div>
+                            <p class="mb-1">{{ module.description }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No modules added to this course yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Thumbnail</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if course.thumbnail %}
+                    <img src="{{ url_for(''static'', filename=''uploads/thumbnails/'' + course.thumbnail) }}" 
+                         alt="{{ course.title }}" class="img-fluid rounded">
+                    {% else %}
+                    <div class="bg-light p-5 rounded">
+                        <i class="fas fa-image fa-3x text-muted"></i>
+                        <p class="mt-2 text-muted">No thumbnail</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for(''admin.edit_course'', course_id=course.id) }}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Edit Course
+                        </a>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCourseModal">
+                            <i class="fas fa-trash"></i> Delete Course
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCourseModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the course "{{ course.title }}"? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for(''admin.delete_course'', course_id=course.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}My Live Classes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>My Live Classes</h1>
+    
+    <ul class="nav nav-tabs mb-4" id="classesTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab" aria-controls="upcoming" aria-selected="true">
+                Upcoming Classes
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab" aria-controls="past" aria-selected="false">
+                Past Classes
+            </button>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="classesTabContent">
+        <!-- Upcoming Classes Tab -->
+        <div class="tab-pane fade show active" id="upcoming" role="tabpanel" aria-labelledby="upcoming-tab">
+            {% if upcoming_classes %}
+                <div class="row">
+                    {% for class in upcoming_classes %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">{{ class.title }}</h5>
+                                    {% if class.platform == 'zoom' %}
+                                        <span class="badge bg-primary">Zoom</span>
+                                    {% elif class.platform == 'google_meet' %}
+                                        <span class="badge bg-success">Google Meet</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ class.platform }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">
+                                        <i class="fas fa-calendar-alt"></i> 
+                                        {{ class.start_time.strftime('%A, %d %B %Y') }}<br>
+                                        <i class="fas fa-clock"></i> 
+                                        {{ class.start_time.strftime('%I:%M %p') }} - {{ class.end_time.strftime('%I:%M %p') }}
+                                    </p>
+                                    
+                                    {% set batch = class.batch %}
+                                    {% set course = batch.course %}
+                                    
+                                    <div class="mb-3">
+                                        <strong>Course:</strong> {{ course.title }}<br>
+                                        <strong>Batch:</strong> {{ batch.name }}
+                                    </div>
+                                    
+                                    {% if class.description %}
+                                        <p class="card-text">{{ class.description }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="card-footer d-flex justify-content-between">
+                                    <a href="{{ url_for('student.class_details', class_id=class.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i> Details
+                                    </a>
+                                    {% if class.meeting_link %}
+                                        <a href="{{ class.meeting_link }}" target="_blank" class="btn btn-success">
+                                            <i class="fas fa-video"></i> Join Class
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <p>You don't have any upcoming classes scheduled.</p>
+                    <a href="{{ url_for('student.calendar') }}" class="btn btn-primary mt-2">
+                        <i class="fas fa-calendar-alt"></i> View Calendar
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Past Classes Tab -->
+        <div class="tab-pane fade" id="past" role="tabpanel" aria-labelledby="past-tab">
+            {% if past_classes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Class</th>
+                                <th>Date & Time</th>
+                                <th>Course & Batch</th>
+                                <th>Attendance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for class in past_classes %}
+                                <tr>
+                                    <td>{{ class.title }}</td>
+                                    <td>
+                                        {{ class.start_time.strftime('%d %b %Y') }}<br>
+                                        {{ class.start_time.strftime('%I:%M %p') }} - {{ class.end_time.strftime('%I:%M %p') }}
+                                    </td>
+                                    <td>
+                                        {{ class.batch.course.title }}<br>
+                                        <small class="text-muted">{{ class.batch.name }}</small>
+                                    </td>
+                                    <td>
+                                        {% if class.id in attendance_records %}
+                                            {% set attendance = attendance_records[class.id] %}
+                                            {% if attendance.status == 'present' %}
+                                                <span class="badge bg-success">Present</span>
+                                                {% if attendance.duration_minutes %}
+                                                    <small class="d-block text-muted">{{ attendance.duration_minutes }} mins</small>
+                                                {% endif %}
+                                            {% elif attendance.status == 'absent' %}
+                                                <span class="badge bg-danger">Absent</span>
+                                            {% elif attendance.status == 'late' %}
+                                                <span class="badge bg-warning">Late</span>
+                                                {% if attendance.duration_minutes %}
+                                                    <small class="d-block text-muted">{{ attendance.duration_minutes }} mins</small>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Not Recorded</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('student.class_details', class_id=class.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-info-circle"></i> Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <p>You don't have any past classes.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

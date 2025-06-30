@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Quizzes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Quizzes</h1>
+        <a href="{{ url_for('instructor.create_quiz') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create Quiz
+        </a>
+    </div>
+
+    {% if quizzes %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Title</th>
+                        <th>Course</th>
+                        <th>Questions</th>
+                        <th>Time Limit</th>
+                        <th>Attempts</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quiz in quizzes %}
+                    <tr>
+                        <td>{{ quiz.title }}</td>
+                        <td>{{ quiz.course.title }}</td>
+                        <td>{{ quiz.questions|length }}</td>
+                        <td>
+                            {% if quiz.time_limit_minutes > 0 %}
+                                {{ quiz.time_limit_minutes }} minutes
+                            {% else %}
+                                No limit
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if quiz.attempts_allowed > 0 %}
+                                {{ quiz.attempts_allowed }}
+                            {% else %}
+                                Unlimited
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if quiz.is_published %}
+                                <span class="badge bg-success">Published</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('instructor.quiz_questions', quiz_id=quiz.id) }}" class="btn btn-sm btn-outline-primary" title="Questions">
+                                    <i class="fas fa-list"></i>
+                                </a>
+                                <a href="{{ url_for('instructor.edit_quiz', quiz_id=quiz.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('instructor.quiz_results', quiz_id=quiz.id) }}" class="btn btn-sm btn-outline-info" title="Results">
+                                    <i class="fas fa-chart-bar"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <p>You haven't created any quizzes yet.</p>
+            <a href="{{ url_for('instructor.create_quiz') }}" class="btn btn-primary">Create Your First Quiz</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

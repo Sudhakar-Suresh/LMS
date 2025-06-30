@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Manage Batches{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Manage Batches</h1>
+        <a href="{{ url_for('instructor.create_batch') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create New Batch
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#active" data-bs-toggle="tab">Active Batches</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#completed" data-bs-toggle="tab">Completed Batches</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#upcoming" data-bs-toggle="tab">Upcoming Batches</a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="active">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Batch Name</th>
+                                    <th>Course</th>
+                                    <th>Duration</th>
+                                    <th>Students</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set now = now() %}
+                                {% for batch in batches %}
+                                    {% if batch.start_date <= now.date() and batch.end_date >= now.date() %}
+                                        <tr>
+                                            <td>{{ batch.name }}</td>
+                                            <td>{{ batch.course.title }}</td>
+                                            <td>{{ batch.start_date.strftime('%d %b %Y') }} - {{ batch.end_date.strftime('%d %b %Y') }}</td>
+                                            <td>
+                                                <span class="badge bg-info">{{ batch.students|length }}/{{ batch.max_students }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="{{ url_for('instructor.batch_students', batch_id=batch.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-users"></i> Students
+                                                    </a>
+                                                    <a href="{{ url_for('instructor.edit_batch', batch_id=batch.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No active batches found.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="completed">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Batch Name</th>
+                                    <th>Course</th>
+                                    <th>Duration</th>
+                                    <th>Students</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set now = now() %}
+                                {% for batch in batches %}
+                                    {% if batch.end_date < now.date() %}
+                                        <tr>
+                                            <td>{{ batch.name }}</td>
+                                            <td>{{ batch.course.title }}</td>
+                                            <td>{{ batch.start_date.strftime('%d %b %Y') }} - {{ batch.end_date.strftime('%d %b %Y') }}</td>
+                                            <td>
+                                                <span class="badge bg-info">{{ batch.students|length }}/{{ batch.max_students }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="{{ url_for('instructor.batch_students', batch_id=batch.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-users"></i> Students
+                                                    </a>
+                                                    <a href="{{ url_for('instructor.edit_batch', batch_id=batch.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No completed batches found.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="upcoming">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Batch Name</th>
+                                    <th>Course</th>
+                                    <th>Duration</th>
+                                    <th>Students</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set now = now() %}
+                                {% for batch in batches %}
+                                    {% if batch.start_date > now.date() %}
+                                        <tr>
+                                            <td>{{ batch.name }}</td>
+                                            <td>{{ batch.course.title }}</td>
+                                            <td>{{ batch.start_date.strftime('%d %b %Y') }} - {{ batch.end_date.strftime('%d %b %Y') }}</td>
+                                            <td>
+                                                <span class="badge bg-info">{{ batch.students|length }}/{{ batch.max_students }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="{{ url_for('instructor.batch_students', batch_id=batch.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-users"></i> Students
+                                                    </a>
+                                                    <a href="{{ url_for('instructor.edit_batch', batch_id=batch.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No upcoming batches found.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

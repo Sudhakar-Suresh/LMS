@@ -1,0 +1,628 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Reports</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-reports" type="button" role="tab" aria-controls="user-reports" aria-selected="true">
+                                User Reports
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="course-tab" data-bs-toggle="tab" data-bs-target="#course-reports" type="button" role="tab" aria-controls="course-reports" aria-selected="false">
+                                Course Reports
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="enrollment-tab" data-bs-toggle="tab" data-bs-target="#enrollment-reports" type="button" role="tab" aria-controls="enrollment-reports" aria-selected="false">
+                                Enrollment Reports
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial-reports" type="button" role="tab" aria-controls="financial-reports" aria-selected="false">
+                                Financial Reports
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content p-4" id="reportTabsContent">
+                        <!-- User Reports -->
+                        <div class="tab-pane fade show active" id="user-reports" role="tabpanel" aria-labelledby="user-tab">
+                            <h4 class="mb-4">User Reports</h4>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">User Registration</h5>
+                                            <p class="card-text">Users registered over time by role</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get" class="row g-3">
+                                                <input type="hidden" name="report_type" value="user_registration">
+                                                <div class="col-md-6">
+                                                    <label for="start_date" class="form-label">Start Date</label>
+                                                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ (today - timedelta(days=30)).strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="end_date" class="form-label">End Date</label>
+                                                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ today.strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-12">
+                                                    <button type="submit" class="btn btn-primary">Generate Report</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">User Activity</h5>
+                                            <p class="card-text">User logins and activity over time</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get" class="row g-3">
+                                                <input type="hidden" name="report_type" value="user_activity">
+                                                <div class="col-md-6">
+                                                    <label for="start_date_activity" class="form-label">Start Date</label>
+                                                    <input type="date" class="form-control" id="start_date_activity" name="start_date" value="{{ (today - timedelta(days=30)).strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="end_date_activity" class="form-label">End Date</label>
+                                                    <input type="date" class="form-control" id="end_date_activity" name="end_date" value="{{ today.strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-12">
+                                                    <button type="submit" class="btn btn-primary">Generate Report</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">User Distribution</h5>
+                                            <p class="card-text">Distribution of users by role and status</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get">
+                                                <input type="hidden" name="report_type" value="user_distribution">
+                                                <button type="submit" class="btn btn-primary">Generate Report</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Course Reports -->
+                        <div class="tab-pane fade" id="course-reports" role="tabpanel" aria-labelledby="course-tab">
+                            <h4 class="mb-4">Course Reports</h4>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Course Popularity</h5>
+                                            <p class="card-text">Most popular courses by enrollment</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get">
+                                                <input type="hidden" name="report_type" value="course_popularity">
+                                                <div class="mb-3">
+                                                    <label for="limit" class="form-label">Number of Courses</label>
+                                                    <select class="form-select" id="limit" name="limit">
+                                                        <option value="5">Top 5</option>
+                                                        <option value="10" selected>Top 10</option>
+                                                        <option value="20">Top 20</option>
+                                                        <option value="50">Top 50</option>
+                                                        <option value="100">Top 100</option>
+                                                    </select>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">Generate Report</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Course Completion</h5>
+                                            <p class="card-text">Course completion rates</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get">
+                                                <input type="hidden" name="report_type" value="course_completion">
+                                                <div class="mb-3">
+                                                    <label for="category" class="form-label">Category</label>
+                                                    <select class="form-select" id="category" name="category_id">
+                                                        <option value="">All Categories</option>
+                                                        {% for category in categories %}
+                                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">Generate Report</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Course Creation</h5>
+                                            <p class="card-text">Courses created over time</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get" class="row g-3">
+                                                <input type="hidden" name="report_type" value="course_creation">
+                                                <div class="col-md-6">
+                                                    <label for="start_date_course" class="form-label">Start Date</label>
+                                                    <input type="date" class="form-control" id="start_date_course" name="start_date" value="{{ (today - timedelta(days=180)).strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="end_date_course" class="form-label">End Date</label>
+                                                    <input type="date" class="form-control" id="end_date_course" name="end_date" value="{{ today.strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-12">
+                                                    <button type="submit" class="btn btn-primary">Generate Report</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Enrollment Reports -->
+                        <div class="tab-pane fade" id="enrollment-reports" role="tabpanel" aria-labelledby="enrollment-tab">
+                            <h4 class="mb-4">Enrollment Reports</h4>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Enrollment Trends</h5>
+                                            <p class="card-text">Enrollments over time</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get" class="row g-3">
+                                                <input type="hidden" name="report_type" value="enrollment_trends">
+                                                <div class="col-md-6">
+                                                    <label for="start_date_enrollment" class="form-label">Start Date</label>
+                                                    <input type="date" class="form-control" id="start_date_enrollment" name="start_date" value="{{ (today - timedelta(days=180)).strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="end_date_enrollment" class="form-label">End Date</label>
+                                                    <input type="date" class="form-control" id="end_date_enrollment" name="end_date" value="{{ today.strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-12">
+                                                    <button type="submit" class="btn btn-primary">Generate Report</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Enrollment by Category</h5>
+                                            <p class="card-text">Distribution of enrollments by course category</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get">
+                                                <input type="hidden" name="report_type" value="enrollment_by_category">
+                                                <button type="submit" class="btn btn-primary">Generate Report</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Financial Reports -->
+                        <div class="tab-pane fade" id="financial-reports" role="tabpanel" aria-labelledby="financial-tab">
+                            <h4 class="mb-4">Financial Reports</h4>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Revenue Report</h5>
+                                            <p class="card-text">Revenue over time</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get" class="row g-3">
+                                                <input type="hidden" name="report_type" value="revenue">
+                                                <div class="col-md-6">
+                                                    <label for="start_date_revenue" class="form-label">Start Date</label>
+                                                    <input type="date" class="form-control" id="start_date_revenue" name="start_date" value="{{ (today - timedelta(days=180)).strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="end_date_revenue" class="form-label">End Date</label>
+                                                    <input type="date" class="form-control" id="end_date_revenue" name="end_date" value="{{ today.strftime('%Y-%m-%d') }}">
+                                                </div>
+                                                <div class="col-12">
+                                                    <button type="submit" class="btn btn-primary">Generate Report</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Top Selling Courses</h5>
+                                            <p class="card-text">Courses with highest revenue</p>
+                                            <form action="{{ url_for('admin.generate_report') }}" method="get">
+                                                <input type="hidden" name="report_type" value="top_selling_courses">
+                                                <div class="mb-3">
+                                                    <label for="limit_revenue" class="form-label">Number of Courses</label>
+                                                    <select class="form-select" id="limit_revenue" name="limit">
+                                                        <option value="5">Top 5</option>
+                                                        <option value="10" selected>Top 10</option>
+                                                        <option value="20">Top 20</option>
+                                                        <option value="50">Top 50</option>
+                                                    </select>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">Generate Report</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Report Results -->
+            {% if report_data %}
+            <div class="card shadow">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ report_title }}</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" id="downloadCSV">
+                            <i class="fas fa-file-csv"></i> Download CSV
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" id="downloadPDF">
+                            <i class="fas fa-file-pdf"></i> Download PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if report_type == 'user_registration' %}
+                        <div class="chart-container" style="position: relative; height:400px;">
+                            <canvas id="userRegistrationChart"></canvas>
+                        </div>
+                        <div class="table-responsive mt-4">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        {% for role in report_data['roles'] %}
+                                        <th>{{ role }}</th>
+                                        {% endfor %}
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for date_data in report_data['data'] %}
+                                    <tr>
+                                        <td>{{ date_data['date'] }}</td>
+                                        {% for role in report_data['roles'] %}
+                                        <td>{{ date_data['counts'].get(role, 0) }}</td>
+                                        {% endfor %}
+                                        <td>{{ date_data['total'] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% elif report_type == 'user_distribution' %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="chart-container" style="position: relative; height:300px;">
+                                    <canvas id="userRoleChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-container" style="position: relative; height:300px;">
+                                    <canvas id="userStatusChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive mt-4">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Role</th>
+                                        <th>Active</th>
+                                        <th>Inactive</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for role, counts in report_data['role_status'].items() %}
+                                    <tr>
+                                        <td>{{ role }}</td>
+                                        <td>{{ counts['active'] }}</td>
+                                        <td>{{ counts['inactive'] }}</td>
+                                        <td>{{ counts['active'] + counts['inactive'] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    <tr class="table-secondary">
+                                        <td><strong>Total</strong></td>
+                                        <td><strong>{{ report_data['totals']['active'] }}</strong></td>
+                                        <td><strong>{{ report_data['totals']['inactive'] }}</strong></td>
+                                        <td><strong>{{ report_data['totals']['active'] + report_data['totals']['inactive'] }}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    {% elif report_type == 'course_popularity' %}
+                        <div class="chart-container" style="position: relative; height:400px;">
+                            <canvas id="coursePopularityChart"></canvas>
+                        </div>
+                        <div class="table-responsive mt-4">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Course</th>
+                                        <th>Instructor</th>
+                                        <th>Category</th>
+                                        <th>Enrollments</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for i, course in enumerate(report_data['courses']) %}
+                                    <tr>
+                                        <td>{{ i + 1 }}</td>
+                                        <td>{{ course['title'] }}</td>
+                                        <td>{{ course['instructor'] }}</td>
+                                        <td>{{ course['category'] }}</td>
+                                        <td>{{ course['enrollments'] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% elif report_type == 'revenue' %}
+                        <div class="chart-container" style="position: relative; height:400px;">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                        <div class="table-responsive mt-4">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Period</th>
+                                        <th>Revenue</th>
+                                        <th>Transactions</th>
+                                        <th>Average Transaction</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for period in report_data['periods'] %}
+                                    <tr>
+                                        <td>{{ period['label'] }}</td>
+                                        <td>${{ period['revenue']|round(2) }}</td>
+                                        <td>{{ period['transactions'] }}</td>
+                                        <td>${{ period['average']|round(2) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    <tr class="table-secondary">
+                                        <td><strong>Total</strong></td>
+                                        <td><strong>${{ report_data['total_revenue']|round(2) }}</strong></td>
+                                        <td><strong>{{ report_data['total_transactions'] }}</strong></td>
+                                        <td><strong>${{ report_data['overall_average']|round(2) }}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if report_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Chart configurations based on report type
+    {% if report_type == 'user_registration' %}
+    const ctx = document.getElementById('userRegistrationChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ report_data['dates']|tojson }},
+            datasets: [
+                {% for role in report_data['roles'] %}
+                {
+                    label: '{{ role }}',
+                    data: {{ report_data['role_data'][role]|tojson }},
+                    borderColor: getRandomColor(),
+                    tension: 0.1,
+                    fill: false
+                },
+                {% endfor %}
+                {
+                    label: 'Total',
+                    data: {{ report_data['totals']|tojson }},
+                    borderColor: '#000',
+                    borderWidth: 2,
+                    tension: 0.1,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Registrations'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            }
+        }
+    });
+    {% elif report_type == 'user_distribution' %}
+    // Role distribution chart
+    const roleCtx = document.getElementById('userRoleChart').getContext('2d');
+    new Chart(roleCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ report_data['roles']|tojson }},
+            datasets: [{
+                data: {{ report_data['role_counts']|tojson }},
+                backgroundColor: generateColors({{ report_data['roles']|length }}),
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'User Distribution by Role'
+                },
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+    
+    // Status distribution chart
+    const statusCtx = document.getElementById('userStatusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Active', 'Inactive'],
+            datasets: [{
+                data: [{{ report_data['totals']['active'] }}, {{ report_data['totals']['inactive'] }}],
+                backgroundColor: ['#28a745', '#dc3545'],
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'User Status Distribution'
+                },
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+    {% elif report_type == 'course_popularity' %}
+    const ctx = document.getElementById('coursePopularityChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ report_data['course_titles']|tojson }},
+            datasets: [{
+                label: 'Number of Enrollments',
+                data: {{ report_data['enrollment_counts']|tojson }},
+                backgroundColor: generateColors({{ report_data['course_titles']|length }}),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Enrollments'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    {% elif report_type == 'revenue' %}
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ report_data['labels']|tojson }},
+            datasets: [{
+                label: 'Revenue ($)',
+                data: {{ report_data['revenues']|tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Revenue ($)'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+    
+    // Helper functions
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+    
+    function generateColors(count) {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            colors.push(getRandomColor());
+        }
+        return colors;
+    }
+    
+    // Export functionality
+    document.getElementById('downloadCSV').addEventListener('click', function() {
+        alert('CSV download functionality will be implemented here');
+    });
+    
+    document.getElementById('downloadPDF').addEventListener('click', function() {
+        alert('PDF download functionality will be implemented here');
+    });
+</script>
+{% endif %}
+{% endblock %}

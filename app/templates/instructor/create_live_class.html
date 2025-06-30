@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Schedule Live Class{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.live_classes') }}">Live Classes</a></li>
+            <li class="breadcrumb-item active">Schedule New Class</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Schedule New Live Class</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('instructor.create_live_class') }}">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Class Title <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="title" name="title" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="batch_id" class="form-label">Batch <span class="text-danger">*</span></label>
+                    <select class="form-select" id="batch_id" name="batch_id" required>
+                        <option value="">Select a batch</option>
+                        {% for batch in batches %}
+                            <option value="{{ batch.id }}">{{ batch.name }} ({{ batch.course.title }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="start_time" class="form-label">Start Date & Time <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control" id="start_time" name="start_time" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="end_time" class="form-label">End Date & Time <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control" id="end_time" name="end_time" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="platform" class="form-label">Platform <span class="text-danger">*</span></label>
+                    <select class="form-select" id="platform" name="platform" required>
+                        <option value="zoom">Zoom</option>
+                        <option value="google_meet">Google Meet</option>
+                        <option value="microsoft_teams">Microsoft Teams</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div id="meetingDetailsSection">
+                    <div class="mb-3">
+                        <label for="meeting_link" class="form-label">Meeting Link</label>
+                        <input type="url" class="form-control" id="meeting_link" name="meeting_link" placeholder="https://...">
+                        <div class="form-text">The URL students will use to join the meeting</div>
+                    </div>
+
+                    <div class="row" id="zoomFields">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="meeting_id" class="form-label">Meeting ID</label>
+                                <input type="text" class="form-control" id="meeting_id" name="meeting_id">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="meeting_password" class="form-label">Meeting Password</label>
+                                <input type="text" class="form-control" id="meeting_password" name="meeting_password">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring">
+                        <label class="form-check-label" for="is_recurring">
+                            Recurring Class
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="recurrenceSection" style="display: none;">
+                    <label for="recurrence_pattern" class="form-label">Recurrence Pattern</label>
+                    <select class="form-select" id="recurrence_pattern" name="recurrence_pattern">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Bi-weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    <div class="form-text">Class details, topics to be covered, preparation requirements, etc.</div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Schedule Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set minimum datetime for start time to now
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const nowStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+        
+        document.getElementById('start_time').setAttribute('min', nowStr);
+        
+        // Update end time min value when start time changes
+        document.getElementById('start_time').addEventListener('change', function() {
+            document.getElementById('end_time').setAttribute('min', this.value);
+            
+            // If end time is before start time, update it
+            if (document.getElementById('end_time').value < this.value) {
+                document.getElementById('end_time').value = this.value;
+            }
+        });
+        
+        // Toggle recurrence section
+        document.getElementById('is_recurring').addEventListener('change', function() {
+            document.getElementById('recurrenceSection').style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // Toggle Zoom-specific fields
+        document.getElementById('platform').addEventListener('change', function() {
+            document.getElementById('zoomFields').style.display = 
+                (this.value === 'zoom') ? 'flex' : 'none';
+        });
+    });
+</script>
+{% endblock %} 

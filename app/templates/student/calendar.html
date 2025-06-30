@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Class Calendar{% endblock %}
+
+{% block head %}
+{{ super() }}
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css" rel="stylesheet">
+<style>
+    .fc-event {
+        cursor: pointer;
+    }
+    .fc-event-title {
+        font-weight: bold;
+    }
+    .fc-event-time {
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Class Calendar</h1>
+    <div class="card">
+        <div class="card-body">
+            <div id="calendar"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Class Details Modal -->
+<div class="modal fade" id="classModal" tabindex="-1" aria-labelledby="classModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="classModalLabel">Class Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="modalTitle"></h4>
+                <div class="mb-3">
+                    <strong>Course:</strong> <span id="modalCourse"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Batch:</strong> <span id="modalBatch"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Instructor:</strong> <span id="modalInstructor"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Date & Time:</strong> <span id="modalDateTime"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Platform:</strong> <span id="modalPlatform"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" id="modalJoinLink" class="btn btn-primary" target="_blank">Join Class</a>
+                <a href="#" id="modalDetailsLink" class="btn btn-info">View Details</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- FullCalendar JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            events: {{ calendar_events|tojson }},
+            eventClick: function(info) {
+                // Populate modal with event details
+                document.getElementById('modalTitle').textContent = info.event.title;
+                document.getElementById('modalCourse').textContent = info.event.extendedProps.course;
+                document.getElementById('modalBatch').textContent = info.event.extendedProps.batch;
+                document.getElementById('modalInstructor').textContent = info.event.extendedProps.instructor;
+                
+                // Format date and time
+                const start = new Date(info.event.start);
+                const end = new Date(info.event.end);
+                const dateTimeStr = start.toLocaleDateString() + ', ' + 
+                                   start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ' - ' + 
+                                   end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                document.getElementById('modalDateTime').textContent = dateTimeStr;
+                
+                // Platform and links
+                document.getElementById('modalPlatform').textContent = info.event.extendedProps.platform === 'zoom' ? 'Zoom' : 
+                    info.event.extendedProps.platform === 'google_meet' ? 'Google Meet' : info.event.extendedProps.platform;
+                
+                // Set links
+                const detailsLink = document.getElementById('modalDetailsLink');
+                detailsLink.href = info.event.extendedProps.url;
+                
+                const joinLink = document.getElementById('modalJoinLink');
+                if (info.event.url) {
+                    joinLink.href = info.event.url;
+                    joinLink.style.display = 'block';
+                } else {
+                    joinLink.style.display = 'none';
+                }
+                
+                // Show modal
+                var modal = new bootstrap.Modal(document.getElementById('classModal'));
+                modal.show();
+                
+                // Prevent navigating to event URL
+                return false;
+            }
+        });
+        calendar.render();
+    });
+</script>
+{% endblock %} 

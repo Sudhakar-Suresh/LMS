@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Quizzes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Quizzes</h1>
+    
+    {% if quiz_data %}
+        <div class="row">
+            {% for item in quiz_data %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{{ item.quiz.title }}</h5>
+                            <span class="badge bg-primary">{{ item.course.title }}</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">{{ item.quiz.description }}</p>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p><i class="fas fa-question-circle"></i> Questions: {{ item.quiz.questions|length }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p>
+                                        <i class="fas fa-clock"></i> 
+                                        {% if item.quiz.time_limit_minutes > 0 %}
+                                            {{ item.quiz.time_limit_minutes }} minutes
+                                        {% else %}
+                                            No time limit
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p>
+                                        <i class="fas fa-redo"></i> Attempts: 
+                                        {% if item.quiz.attempts_allowed > 0 %}
+                                            {{ item.attempts|length }}/{{ item.quiz.attempts_allowed }}
+                                        {% else %}
+                                            {{ item.attempts|length }}/∞
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><i class="fas fa-award"></i> Pass: {{ item.quiz.passing_score }}%</p>
+                                </div>
+                            </div>
+                            
+                            {% if item.attempts %}
+                                <div class="alert alert-info">
+                                    <p class="mb-1"><strong>Your Attempts:</strong></p>
+                                    <ul class="mb-0">
+                                        {% for attempt in item.attempts %}
+                                            <li>
+                                                {{ attempt.start_time.strftime('%Y-%m-%d %H:%M') }} - 
+                                                {% if attempt.is_completed %}
+                                                    Score: {{ attempt.percentage|round(1) }}% 
+                                                    {% if attempt.is_passed %}
+                                                        <span class="badge bg-success">Passed</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Failed</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark">In Progress</span>
+                                                {% endif %}
+                                                <a href="{{ url_for('student.quiz_result', attempt_id=attempt.id) }}" class="btn btn-sm btn-outline-info">View</a>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer text-end">
+                            <a href="{{ url_for('student.quiz_details', quiz_id=item.quiz.id) }}" class="btn btn-outline-secondary me-2">Details</a>
+                            {% if item.can_take %}
+                                <a href="{{ url_for('student.take_quiz', quiz_id=item.quiz.id) }}" class="btn btn-primary">Take Quiz</a>
+                            {% else %}
+                                <button class="btn btn-secondary" disabled>Maximum Attempts Reached</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <p>No quizzes are available for your enrolled courses.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

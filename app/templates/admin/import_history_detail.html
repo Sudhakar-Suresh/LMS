@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Import Details - Learning Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Import Details</h2>
+        <div>
+            <a href="{{ url_for('admin.import_history') }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i> Back to History
+            </a>
+            <a href="{{ url_for('admin.bulk_import_users') }}" class="btn btn-primary">
+                <i class="fas fa-file-import me-1"></i> New Import
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Import Summary</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Filename:</span>
+                            <span class="fw-bold">{{ history.filename }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Imported By:</span>
+                            <span class="fw-bold">{{ history.imported_by.username }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Import Date:</span>
+                            <span class="fw-bold">{{ history.import_date.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Total Records:</span>
+                            <span class="fw-bold">{{ history.total_records }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Successful Imports:</span>
+                            <span class="badge bg-success rounded-pill">{{ history.successful_imports }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Failed Imports:</span>
+                            <span class="badge bg-danger rounded-pill">{{ history.failed_imports }}</span>
+                        </li>
+                        <li class="list-group-item">
+                            <span>Success Rate:</span>
+                            {% if history.total_records > 0 %}
+                            <div class="progress mt-2" style="height: 20px;">
+                                {% set success_rate = (history.successful_imports / history.total_records * 100)|round|int %}
+                                <div class="progress-bar {% if success_rate >= 90 %}bg-success{% elif success_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                     role="progressbar" style="width: {{ success_rate }}%;" 
+                                     aria-valuenow="{{ success_rate }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ success_rate }}%
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="badge bg-secondary">N/A</span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Error Log</h5>
+                </div>
+                <div class="card-body">
+                    {% if history.error_log %}
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading">The following errors occurred during import:</h6>
+                        <hr>
+                        <pre class="mb-0" style="max-height: 400px; overflow-y: auto;">{{ history.error_log }}</pre>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <p class="mb-0">No errors were reported during this import.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

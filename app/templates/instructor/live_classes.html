@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Live Classes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Live Classes</h1>
+        <a href="{{ url_for('instructor.create_live_class') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Schedule New Class
+        </a>
+    </div>
+
+    {% if classes_by_batch %}
+        {% for batch_id, batch_data in classes_by_batch.items() %}
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5>{{ batch_data.batch.name }} - {{ batch_data.batch.course.title }}</h5>
+                    <p class="text-muted mb-0">{{ batch_data.batch.start_date.strftime('%d %b %Y') }} - {{ batch_data.batch.end_date.strftime('%d %b %Y') }}</p>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Date & Time</th>
+                                    <th>Platform</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set now = now() %}
+                                {% for class in batch_data.classes %}
+                                    <tr>
+                                        <td>{{ class.title }}</td>
+                                        <td>
+                                            {{ class.start_time.strftime('%d %b %Y') }}<br>
+                                            {{ class.start_time.strftime('%I:%M %p') }} - {{ class.end_time.strftime('%I:%M %p') }}
+                                            {% if class.is_recurring %}
+                                                <span class="badge bg-info">{{ class.recurrence_pattern }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if class.platform == 'zoom' %}
+                                                <span class="badge bg-primary">Zoom</span>
+                                            {% elif class.platform == 'google_meet' %}
+                                                <span class="badge bg-success">Google Meet</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ class.platform }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if class.start_time > now %}
+                                                <span class="badge bg-warning">Upcoming</span>
+                                            {% elif class.end_time < now %}
+                                                <span class="badge bg-secondary">Completed</span>
+                                            {% else %}
+                                                <span class="badge bg-success">In Progress</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('instructor.edit_live_class', class_id=class.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                {% if class.end_time < now %}
+                                                    <a href="{{ url_for('instructor.class_attendance', class_id=class.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-clipboard-list"></i> Attendance
+                                                    </a>
+                                                {% endif %}
+                                                {% if class.meeting_link %}
+                                                    <a href="{{ class.meeting_link }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                                        <i class="fas fa-video"></i> Join
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            <p>You haven't scheduled any live classes yet.</p>
+            <a href="{{ url_for('instructor.create_live_class') }}" class="btn btn-primary mt-2">
+                <i class="fas fa-plus"></i> Schedule Your First Class
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 
