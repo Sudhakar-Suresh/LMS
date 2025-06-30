@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Learning Management System{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-4">Welcome to the Learning Management System</h1>
+    <p class="lead">A comprehensive platform for students, instructors, parents, and administrators.</p>
+    <hr class="my-4">
+    <p>Get started by logging in or registering for an account.</p>
+    <div class="d-flex justify-content-center">
+        <a class="btn btn-primary btn-lg me-2" href="{{ url_for('auth.login') }}" role="button">Login</a>
+        <a class="btn btn-secondary btn-lg" href="{{ url_for('auth.register') }}" role="button">Register</a>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <i class="fas fa-chalkboard-teacher fa-3x mb-3 text-primary"></i>
+                <h3 class="card-title">For Instructors</h3>
+                <p class="card-text">Create and manage courses, track student progress, and provide quality education.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <i class="fas fa-user-graduate fa-3x mb-3 text-primary"></i>
+                <h3 class="card-title">For Students</h3>
+                <p class="card-text">Access course materials, submit assignments, and track your academic progress.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-3x mb-3 text-primary"></i>
+                <h3 class="card-title">For Parents</h3>
+                <p class="card-text">Monitor your child's academic performance and stay connected with their education.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

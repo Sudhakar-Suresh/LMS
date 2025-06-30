@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - Learning Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="mb-4">Student Dashboard</h1>
+        <p class="lead">Welcome, {{ current_user.first_name }}! Manage your courses and assignments here.</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Your Enrolled Courses</h6>
+                <a href="{{ url_for('student.courses') }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus"></i> Browse Courses
+                </a>
+            </div>
+            <div class="card-body">
+                {% if courses %}
+                    <div class="row">
+                        {% for course_info in courses %}
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-primary text-white">
+                                    {{ course_info.course.title }}
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">{{ course_info.course.description|truncate(100) }}</p>
+                                    <p><strong>Instructor:</strong> {{ course_info.instructor.first_name }} {{ course_info.instructor.last_name }}</p>
+                                    <p><small class="text-muted">Enrolled on: {{ course_info.enrollment_date.strftime('%Y-%m-%d') }}</small></p>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="{{ url_for('student.course_details', course_id=course_info.course.id) }}" class="btn btn-sm btn-primary">Go to Course</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="lead">You are not enrolled in any courses yet.</p>
+                        <a href="{{ url_for('student.courses') }}" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Browse Available Courses
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Upcoming Assignments</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Project Milestone 2</h5>
+                            <small class="text-danger">Due in 3 days</small>
+                        </div>
+                        <p class="mb-1">Introduction to Programming</p>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Final Exam</h5>
+                            <small class="text-warning">Due in 2 weeks</small>
+                        </div>
+                        <p class="mb-1">Database Systems</p>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Research Paper</h5>
+                            <small class="text-warning">Due in 3 weeks</small>
+                        </div>
+                        <p class="mb-1">Advanced Algorithms</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Grades</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Quiz 3</h5>
+                            <span class="badge bg-success">90%</span>
+                        </div>
+                        <p class="mb-1">Introduction to Programming</p>
+                        <small>Graded 2 days ago</small>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Assignment 4</h5>
+                            <span class="badge bg-warning">75%</span>
+                        </div>
+                        <p class="mb-1">Database Systems</p>
+                        <small>Graded 1 week ago</small>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Project Milestone 1</h5>
+                            <span class="badge bg-success">95%</span>
+                        </div>
+                        <p class="mb-1">Advanced Algorithms</p>
+                        <small>Graded 2 weeks ago</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

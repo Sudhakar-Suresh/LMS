@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Parent Dashboard - Learning Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="mb-4">Parent Dashboard</h1>
+        <p class="lead">Welcome, {{ current_user.first_name }}! Monitor your children's academic progress here.</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Your Children</h6>
+            </div>
+            <div class="card-body">
+                {% if children %}
+                    <div class="row">
+                        {% for child in children %}
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-primary text-white">
+                                    {{ child.student.first_name }} {{ child.student.last_name }}
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Username:</strong> {{ child.student.username }}</p>
+                                    <p><strong>Email:</strong> {{ child.student.email }}</p>
+                                    <p><strong>Enrolled Courses:</strong> {{ child.courses|length }}</p>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="{{ url_for('parent.child_details', student_id=child.student.id) }}" class="btn btn-sm btn-primary">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="lead">You don't have any children registered in the system.</p>
+                        <p>Please contact the administrator to link your account with your children.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Notifications</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">New Grade Posted</h5>
+                            <small>3 days ago</small>
+                        </div>
+                        <p class="mb-1">Alex received a grade for "Quiz 3" in "Introduction to Programming"</p>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Upcoming Assignment</h5>
+                            <small>1 week ago</small>
+                        </div>
+                        <p class="mb-1">Emma has an assignment "Final Project" due in 2 weeks</p>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Course Enrollment</h5>
+                            <small>2 weeks ago</small>
+                        </div>
+                        <p class="mb-1">Alex enrolled in "Advanced Mathematics"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Upcoming Events</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Parent-Teacher Conference</h5>
+                            <small class="text-danger">In 2 days</small>
+                        </div>
+                        <p class="mb-1">Virtual meeting with instructors to discuss academic progress</p>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">End of Term</h5>
+                            <small class="text-warning">In 3 weeks</small>
+                        </div>
+                        <p class="mb-1">Final grades will be posted for the current term</p>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Summer Registration</h5>
+                            <small class="text-info">In 1 month</small>
+                        </div>
+                        <p class="mb-1">Registration opens for summer courses</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

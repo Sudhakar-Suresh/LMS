@@ -1,0 +1,129 @@
+/* Custom styles for Learning Management System */
+
+/* General Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Card Styles */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+/* Border left cards for dashboard stats */
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+/* Text colors */
+.text-gray-300 {
+    color: #dddfeb !important;
+}
+
+.text-gray-800 {
+    color: #5a5c69 !important;
+}
+
+/* Navbar customization */
+.navbar-dark.bg-primary {
+    background-color: #4e73df !important;
+}
+
+/* Footer customization */
+.footer {
+    position: relative;
+    margin-top: 2rem;
+}
+
+/* Login and Register forms */
+.form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+}
+
+/* Dashboard cards */
+.dashboard-card {
+    transition: transform 0.2s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Course cards */
+.card-header.bg-primary {
+    background-color: #4e73df !important;
+}
+
+/* Jumbotron (Bootstrap 5 doesn't have jumbotron, so we create our own) */
+.jumbotron {
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
+    background-color: #e9ecef;
+    border-radius: 0.3rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .jumbotron {
+        padding: 1rem;
+    }
+}
+
+/* Custom font weights */
+.font-weight-bold {
+    font-weight: 700 !important;
+}
+
+/* Custom text sizes */
+.text-xs {
+    font-size: .7rem;
+}
+
+/* No gutters row for dashboard stats */
+.row.no-gutters {
+    margin-right: 0;
+    margin-left: 0;
+}
+
+.row.no-gutters > [class^="col-"] {
+    padding-right: 0;
+    padding-left: 0;
+}
+
+/* Custom button hover effects */
+.btn-primary:hover {
+    background-color: #2e59d9;
+    border-color: #2653d4;
+}
+
+/* List group customization */
+.list-group-item-action:hover {
+    background-color: #f8f9fa;
+}
+
+/* Badge customization */
+.badge {
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+} 
