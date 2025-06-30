@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}My Courses{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>My Courses</h1>
+        <a href="{{ url_for('instructor.create_course') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create New Course
+        </a>
+    </div>
+    <hr>
+
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5>Course Management</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{{ url_for('instructor.courses') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-book"></i> All Courses
+                        </a>
+                        <a href="{{ url_for('instructor.categories') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-folder"></i> Categories
+                        </a>
+                        <a href="{{ url_for('instructor.tags') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tags"></i> Tags
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            {% if courses %}
+                <div class="row">
+                    {% for course in courses %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                {% if course.thumbnail %}
+                                    <img src="{{ url_for('static', filename='uploads/' + course.thumbnail) }}" class="card-img-top" alt="{{ course.title }}" style="height: 180px; object-fit: cover;">
+                                {% else %}
+                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                        <i class="fas fa-book fa-4x text-muted"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ course.title }}</h5>
+                                    <div class="mb-2">
+                                        {% if course.category %}
+                                            <span class="badge bg-primary">{{ course.category.name }}</span>
+                                        {% endif %}
+                                        {% for tag in course.tags %}
+                                            <span class="badge bg-secondary">{{ tag.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    <p class="card-text text-muted small">
+                                        {% if course.description %}
+                                            {{ course.description|truncate(100) }}
+                                        {% else %}
+                                            No description provided.
+                                        {% endif %}
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge {% if course.is_published %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                            {% if course.is_published %}Published{% else %}Draft{% endif %}
+                                        </span>
+                                        <small class="text-muted">{{ course.enrollments|length }} students</small>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-white">
+                                    <div class="btn-group w-100" role="group">
+                                        <a href="{{ url_for('instructor.course_curriculum', course_id=course.id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-list-ul"></i> Curriculum
+                                        </a>
+                                        <a href="{{ url_for('instructor.edit_course', course_id=course.id) }}" class="btn btn-outline-secondary">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <a href="{{ url_for('instructor.course_details', course_id=course.id) }}" class="btn btn-outline-info">
+                                            <i class="fas fa-users"></i> Students
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <h4 class="alert-heading">No courses yet!</h4>
+                    <p>You haven't created any courses yet. Click the "Create New Course" button to get started.</p>
+                    <hr>
+                    <p class="mb-0">Need help? Check out our instructor resources for tips on creating engaging courses.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

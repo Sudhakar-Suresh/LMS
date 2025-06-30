@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Create New Course{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Create New Course</h1>
+    <hr>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Basic Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Course Title</label>
+                    <input type="text" class="form-control" id="title" name="title" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Course Description</label>
+                    {{ ckeditor.create(name='description', value='') }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="thumbnail" class="form-label">Course Thumbnail</label>
+                    <input type="file" class="form-control" id="thumbnail" name="thumbnail" accept="image/*">
+                    <small class="text-muted">Recommended size: 1280x720 pixels</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Categorization</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="category_id" class="form-label">Category</label>
+                    <select class="form-select" id="category_id" name="category_id">
+                        <option value="">-- Select Category --</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="tags" class="form-label">Tags</label>
+                    <select class="form-select" id="tags" name="tags" multiple>
+                        {% for tag in tags %}
+                        <option value="{{ tag.id }}">{{ tag.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Hold Ctrl/Cmd to select multiple tags</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Content Release Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="enable_drip" name="enable_drip">
+                    <label class="form-check-label" for="enable_drip">
+                        Enable Drip Content Release
+                    </label>
+                </div>
+
+                <div class="mb-3" id="drip_settings" style="display: none;">
+                    <label for="drip_interval" class="form-label">Days between content releases</label>
+                    <input type="number" class="form-control" id="drip_interval" name="drip_interval" min="0" value="7">
+                    <small class="text-muted">Set to 0 for manual control of release days per lesson</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+            <a href="{{ url_for('instructor.courses') }}" class="btn btn-secondary me-md-2">Cancel</a>
+            <button type="submit" class="btn btn-primary">Create Course</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{{ ckeditor.load() }}
+<script>
+    // Show/hide drip settings based on checkbox
+    document.getElementById('enable_drip').addEventListener('change', function() {
+        const dripSettings = document.getElementById('drip_settings');
+        dripSettings.style.display = this.checked ? 'block' : 'none';
+    });
+</script>
+{% endblock %} 

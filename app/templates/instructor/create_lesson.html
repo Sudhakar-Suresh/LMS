@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Create Lesson - {{ module.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.courses') }}">Courses</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.course_curriculum', course_id=course.id) }}">{{ course.title }}</a></li>
+            <li class="breadcrumb-item active">Create Lesson</li>
+        </ol>
+    </nav>
+
+    <h1>Create New Lesson</h1>
+    <p class="text-muted">For module: {{ module.title }}</p>
+    <hr>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Lesson Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                            <small class="text-muted">Example: "Variables and Data Types" or "Introduction to Functions"</small>
+                        </div>
+                        
+                        {% if course.enable_drip %}
+                        <div class="mb-3">
+                            <label for="release_days" class="form-label">Release Days</label>
+                            <input type="number" class="form-control" id="release_days" name="release_days" min="0" value="0">
+                            <small class="text-muted">Number of days after enrollment when this lesson becomes available (0 = immediately available)</small>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('instructor.course_curriculum', course_id=course.id) }}" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Create Lesson</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5>Tips for Effective Lessons</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li class="mb-2">Focus each lesson on a single concept or skill</li>
+                        <li class="mb-2">Keep lessons concise and digestible (15-30 minutes)</li>
+                        <li class="mb-2">Use a mix of content types within each lesson</li>
+                        <li class="mb-2">Consider the logical progression of concepts</li>
+                    </ul>
+                </div>
+            </div>
+            
+            {% if course.enable_drip %}
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h5>Drip Content Enabled</h5>
+                </div>
+                <div class="card-body">
+                    <p>This course has drip content release enabled. You can set when each lesson becomes available to students after they enroll.</p>
+                    <p class="mb-0"><strong>Course default:</strong> {{ course.drip_interval_days }} days between lessons</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Course Curriculum - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Course Curriculum: {{ course.title }}</h1>
+        <div>
+            <a href="{{ url_for('instructor.edit_course', course_id=course.id) }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-edit"></i> Edit Course
+            </a>
+            <a href="{{ url_for('instructor.course_details', course_id=course.id) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-users"></i> Students
+            </a>
+        </div>
+    </div>
+    <hr>
+
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 
+        Drag and drop modules, lessons, and topics to reorder them. Click on items to edit.
+    </div>
+
+    <div class="d-grid mb-4">
+        <a href="{{ url_for('instructor.create_module', course_id=course.id) }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Add New Module
+        </a>
+    </div>
+
+    <div id="curriculum-container">
+        {% if course.modules %}
+            {% for module in course.modules %}
+                <div class="card mb-4 module-card" data-module-id="{{ module.id }}">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-grip-vertical handle-module me-2"></i>
+                            <span class="fw-bold">Module {{ loop.index }}: {{ module.title }}</span>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('instructor.create_lesson', module_id=module.id) }}" class="btn btn-sm btn-light">
+                                <i class="fas fa-plus"></i> Add Lesson
+                            </a>
+                            <a href="{{ url_for('instructor.edit_module', module_id=module.id) }}" class="btn btn-sm btn-light ms-1">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if module.description %}
+                            <p class="mb-3">{{ module.description }}</p>
+                        {% endif %}
+                        
+                        <div class="lessons-container" data-module-id="{{ module.id }}">
+                            {% if module.lessons %}
+                                {% for lesson in module.lessons %}
+                                    <div class="card mb-3 lesson-card" data-lesson-id="{{ lesson.id }}">
+                                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="fas fa-grip-vertical handle-lesson me-2"></i>
+                                                <span class="fw-bold">Lesson {{ loop.index }}: {{ lesson.title }}</span>
+                                                {% if lesson.release_days > 0 %}
+                                                    <span class="badge bg-info ms-2">Released after {{ lesson.release_days }} days</span>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <a href="{{ url_for('instructor.create_topic', lesson_id=lesson.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-plus"></i> Add Topic
+                                                </a>
+                                                <a href="{{ url_for('instructor.edit_lesson', lesson_id=lesson.id) }}" class="btn btn-sm btn-outline-secondary ms-1">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="topics-container" data-lesson-id="{{ lesson.id }}">
+                                                {% if lesson.topics %}
+                                                    {% for topic in lesson.topics %}
+                                                        <div class="card mb-2 topic-card" data-topic-id="{{ topic.id }}">
+                                                            <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <i class="fas fa-grip-vertical handle-topic me-2"></i>
+                                                                    <span class="fw-bold">{{ topic.title }}</span>
+                                                                    {% if topic.content_type == 'text' %}
+                                                                        <span class="badge bg-secondary ms-2">Text</span>
+                                                                    {% elif topic.content_type == 'video' %}
+                                                                        <span class="badge bg-danger ms-2">Video</span>
+                                                                    {% elif topic.content_type == 'audio' %}
+                                                                        <span class="badge bg-warning text-dark ms-2">Audio</span>
+                                                                    {% elif topic.content_type == 'pdf' %}
+                                                                        <span class="badge bg-danger ms-2">PDF</span>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div>
+                                                                    <a href="{{ url_for('instructor.edit_topic', topic_id=topic.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                                        <i class="fas fa-edit"></i> Edit
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <div class="alert alert-light text-center">
+                                                        No topics yet. <a href="{{ url_for('instructor.create_topic', lesson_id=lesson.id) }}">Add your first topic</a>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="alert alert-light text-center">
+                                    No lessons yet. <a href="{{ url_for('instructor.create_lesson', module_id=module.id) }}">Add your first lesson</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-light text-center">
+                <h4>Your course needs content!</h4>
+                <p>Start by adding a module to organize your course content.</p>
+                <a href="{{ url_for('instructor.create_module', course_id=course.id) }}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Add First Module
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+    // Initialize sortable for modules
+    new Sortable(document.getElementById('curriculum-container'), {
+        animation: 150,
+        handle: '.handle-module',
+        draggable: '.module-card',
+        onEnd: function(evt) {
+            const moduleIds = Array.from(document.querySelectorAll('.module-card')).map(el => el.dataset.moduleId);
+            updateModuleOrder(moduleIds);
+        }
+    });
+
+    // Initialize sortable for lessons within each module
+    document.querySelectorAll('.lessons-container').forEach(container => {
+        new Sortable(container, {
+            animation: 150,
+            handle: '.handle-lesson',
+            draggable: '.lesson-card',
+            onEnd: function(evt) {
+                const moduleId = container.dataset.moduleId;
+                const lessonIds = Array.from(container.querySelectorAll('.lesson-card')).map(el => el.dataset.lessonId);
+                updateLessonOrder(moduleId, lessonIds);
+            }
+        });
+    });
+
+    // Initialize sortable for topics within each lesson
+    document.querySelectorAll('.topics-container').forEach(container => {
+        new Sortable(container, {
+            animation: 150,
+            handle: '.handle-topic',
+            draggable: '.topic-card',
+            onEnd: function(evt) {
+                const lessonId = container.dataset.lessonId;
+                const topicIds = Array.from(container.querySelectorAll('.topic-card')).map(el => el.dataset.topicId);
+                updateTopicOrder(lessonId, topicIds);
+            }
+        });
+    });
+
+    // Functions to update order via AJAX
+    function updateModuleOrder(moduleIds) {
+        fetch('{{ url_for("instructor.reorder_modules") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                course_id: {{ course.id }},
+                module_order: moduleIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Error reordering modules:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function updateLessonOrder(moduleId, lessonIds) {
+        fetch('{{ url_for("instructor.reorder_lessons") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                module_id: moduleId,
+                lesson_order: lessonIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Error reordering lessons:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function updateTopicOrder(lessonId, topicIds) {
+        fetch('{{ url_for("instructor.reorder_topics") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                lesson_id: lessonId,
+                topic_order: topicIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Error reordering topics:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+</script>
+{% endblock %} 

@@ -4,10 +4,12 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from datetime import datetime
 from config import Config
+from flask_ckeditor import CKEditor
 
-# Initialize SQLAlchemy
+# Initialize extensions
 db = SQLAlchemy()
 login_manager = LoginManager()
+ckeditor = CKEditor()
 
 
 def create_app(config_class=Config):
@@ -16,9 +18,21 @@ def create_app(config_class=Config):
     # Configuration
     app.config.from_object(config_class)
 
+    # Create upload directory if it doesn't exist
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(os.path.join(
+        app.config['UPLOAD_FOLDER'], 'thumbnails'), exist_ok=True)
+    os.makedirs(os.path.join(
+        app.config['UPLOAD_FOLDER'], 'video'), exist_ok=True)
+    os.makedirs(os.path.join(
+        app.config['UPLOAD_FOLDER'], 'audio'), exist_ok=True)
+    os.makedirs(os.path.join(
+        app.config['UPLOAD_FOLDER'], 'pdf'), exist_ok=True)
+
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
+    ckeditor.init_app(app)
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
 
