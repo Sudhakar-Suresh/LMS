@@ -293,6 +293,13 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Debug section -->
+                    <div class="alert alert-info">
+                        <h6>Debug Info:</h6>
+                        <p>Report Type: {{ report_type }}</p>
+                        <p>Report Data Keys: {{ report_data.keys()|list }}</p>
+                    </div>
+                    
                     {% if report_type == 'user_registration' %}
                         <div class="chart-container" style="position: relative; height:400px;">
                             <canvas id="userRegistrationChart"></canvas>
@@ -378,9 +385,9 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for i, course in enumerate(report_data['courses']) %}
+                                    {% for course in report_data['courses'] %}
                                     <tr>
-                                        <td>{{ i + 1 }}</td>
+                                        <td>{{ loop.index }}</td>
                                         <td>{{ course['title'] }}</td>
                                         <td>{{ course['instructor'] }}</td>
                                         <td>{{ course['category'] }}</td>
@@ -438,15 +445,24 @@
     // Chart configurations based on report type
     {% if report_type == 'user_registration' %}
     const ctx = document.getElementById('userRegistrationChart').getContext('2d');
+    const dates = {{ report_data['dates']|safe }};
+    const totals = {{ report_data['totals']|safe }};
+    const roles = {{ report_data['roles']|safe }};
+    const roleData = {};
+    
+    {% for role in report_data['roles'] %}
+    roleData['{{ role }}'] = {{ report_data['role_data'][role]|safe }};
+    {% endfor %}
+    
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: {{ report_data['dates']|tojson }},
+            labels: dates,
             datasets: [
                 {% for role in report_data['roles'] %}
                 {
                     label: '{{ role }}',
-                    data: {{ report_data['role_data'][role]|tojson }},
+                    data: roleData['{{ role }}'],
                     borderColor: getRandomColor(),
                     tension: 0.1,
                     fill: false
@@ -454,7 +470,7 @@
                 {% endfor %}
                 {
                     label: 'Total',
-                    data: {{ report_data['totals']|tojson }},
+                    data: totals,
                     borderColor: '#000',
                     borderWidth: 2,
                     tension: 0.1,

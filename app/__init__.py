@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, json
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from datetime import datetime
@@ -61,5 +61,15 @@ def create_app(config_class=Config):
         @app.context_processor
         def inject_now():
             return {'now': datetime.utcnow()}
+
+        # Add tojson filter
+        @app.template_filter('tojson')
+        def tojson_filter(obj):
+            return json.dumps(obj)
+
+        # Add tojson filter
+        @app.template_filter('tojson')
+        def tojson_filter(obj):
+            return json.dumps(obj)
 
     return app

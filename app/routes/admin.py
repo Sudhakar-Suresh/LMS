@@ -8,10 +8,18 @@ from werkzeug.utils import secure_filename
 import os
 import csv
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
+import random
 
 admin = Blueprint('admin', __name__, url_prefix='/admin')
+
+# Make enumerate available to templates
+
+
+@admin.app_template_global()
+def enumerate(iterable, start=0):
+    return __builtins__['enumerate'](iterable, start)
 
 # Admin required decorator
 
@@ -640,6 +648,12 @@ def system_settings():
 def reports():
     report_type = request.args.get('type', 'users')
 
+    # Get today's date for date pickers
+    today = datetime.now().date()
+
+    # Get categories for dropdowns
+    categories = CourseCategory.query.all()
+
     if report_type == 'users':
         # User registration over time - SQLite compatible
         user_counts = db.session.query(
@@ -656,7 +670,10 @@ def reports():
         return render_template('admin/reports.html',
                                report_type=report_type,
                                user_counts=user_counts,
-                               role_counts=role_counts)
+                               role_counts=role_counts,
+                               today=today,
+                               timedelta=timedelta,
+                               categories=categories)
 
     elif report_type == 'courses':
         # Course creation over time - SQLite compatible
@@ -675,7 +692,10 @@ def reports():
         return render_template('admin/reports.html',
                                report_type=report_type,
                                course_counts=course_counts,
-                               category_counts=category_counts)
+                               category_counts=category_counts,
+                               today=today,
+                               timedelta=timedelta,
+                               categories=categories)
 
     elif report_type == 'enrollments':
         # Enrollments over time - SQLite compatible
@@ -695,9 +715,273 @@ def reports():
         return render_template('admin/reports.html',
                                report_type=report_type,
                                enrollment_counts=enrollment_counts,
-                               popular_courses=popular_courses)
+                               popular_courses=popular_courses,
+                               today=today,
+                               timedelta=timedelta,
+                               categories=categories)
 
-    return render_template('admin/reports.html', report_type=report_type)
+    return render_template('admin/reports.html',
+                           report_type=report_type,
+                           today=today,
+                           timedelta=timedelta,
+                           categories=categories)
+
+
+@admin.route('/generate_report')
+@login_required
+@admin_required
+def generate_report():
+    try:
+        report_type = request.args.get('report_type')
+        print(f"Generating report of type: {report_type}")
+        report_data = {}
+        report_title = "Report"
+
+        if report_type == 'user_registration':
+            # Get date parameters
+            start_date_str = request.args.get('start_date')
+            end_date_str = request.args.get('end_date')
+
+            try:
+                start_date = datetime.strptime(
+                    start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                end_date = end_date + timedelta(days=1)  # Include the end date
+            except (ValueError, TypeError):
+                # Default to last 30 days if dates are invalid
+                end_date = datetime.now().date() + timedelta(days=1)
+                start_date = end_date - timedelta(days=31)
+
+            # Query users registered in the date range
+            users = User.query.filter(
+                User.created_at >= start_date,
+                User.created_at < end_date
+            ).all()
+
+            # Organize data by date and role
+            date_range = (end_date - start_date).days
+            dates = []
+            role_data = {}
+            totals = []
+
+            # Initialize data structure
+            all_roles = [role.name for role in UserRole]
+            for role in all_roles:
+                role_data[role] = []
+
+            # Process data by day
+            for i in range(date_range):
+                current_date = start_date + timedelta(days=i)
+                date_str = current_date.strftime('%Y-%m-%d')
+                dates.append(date_str)
+
+                # Count users by role for this date
+                date_counts = {role: 0 for role in all_roles}
+                date_total = 0
+
+                for user in users:
+                    user_date = user.created_at.date()
+                    if user_date == current_date:
+                        date_counts[user.role.name] += 1
+                        date_total += 1
+
+                # Add counts to role data
+                for role in all_roles:
+                    role_data[role].append(date_counts[role])
+
+                totals.append(date_total)
+
+            # Prepare data for display
+            data = []
+            for i, date_str in enumerate(dates):
+                date_data = {
+                    'date': date_str,
+                    'counts': {role: role_data[role][i] for role in all_roles},
+                    'total': totals[i]
+                }
+                data.append(date_data)
+
+            report_data = {
+                'dates': dates,
+                'roles': all_roles,
+                'role_data': role_data,
+                'totals': totals,
+                'data': data
+            }
+            report_title = "User Registration Report"
+
+        elif report_type == 'user_distribution':
+            # Get user distribution by role and status
+            users = User.query.all()
+
+            # Count users by role and status
+            roles = [role.name for role in UserRole]
+            role_counts = {role: 0 for role in roles}
+            role_status = {role: {'active': 0, 'inactive': 0}
+                           for role in roles}
+
+            for user in users:
+                role = user.role.name
+                role_counts[role] += 1
+                if user.is_active:
+                    role_status[role]['active'] += 1
+                else:
+                    role_status[role]['inactive'] += 1
+
+            # Calculate totals
+            total_active = sum(status['active']
+                               for status in role_status.values())
+            total_inactive = sum(status['inactive']
+                                 for status in role_status.values())
+
+            report_data = {
+                'roles': roles,
+                'role_counts': [role_counts[role] for role in roles],
+                'role_status': role_status,
+                'totals': {
+                    'active': total_active,
+                    'inactive': total_inactive
+                }
+            }
+            report_title = "User Distribution Report"
+
+        elif report_type == 'course_popularity':
+            # Get limit parameter
+            try:
+                limit = int(request.args.get('limit', 10))
+            except ValueError:
+                limit = 10
+
+            # Query most popular courses by enrollment
+            popular_courses = db.session.query(
+                Course,
+                db.func.count(Enrollment.id).label('enrollment_count')
+            ).join(Enrollment).group_by(Course.id).order_by(
+                db.desc('enrollment_count')
+            ).limit(limit).all()
+
+            # Prepare data for display
+            courses = []
+            course_titles = []
+            enrollment_counts = []
+
+            for course, count in popular_courses:
+                course_titles.append(course.title)
+                enrollment_counts.append(count)
+
+                instructor_name = course.instructor.get_full_name(
+                ) if course.instructor else "No Instructor"
+                category_name = course.category.name if course.category else "No Category"
+
+                courses.append({
+                    'title': course.title,
+                    'instructor': instructor_name,
+                    'category': category_name,
+                    'enrollments': count
+                })
+
+            report_data = {
+                'courses': courses,
+                'course_titles': course_titles,
+                'enrollment_counts': enrollment_counts
+            }
+            report_title = f"Top {len(courses)} Popular Courses"
+
+        elif report_type == 'revenue':
+            # Get date parameters
+            start_date_str = request.args.get('start_date')
+            end_date_str = request.args.get('end_date')
+
+            try:
+                start_date = datetime.strptime(
+                    start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                end_date = end_date + timedelta(days=1)  # Include the end date
+            except (ValueError, TypeError):
+                # Default to last 180 days if dates are invalid
+                end_date = datetime.now().date() + timedelta(days=1)
+                start_date = end_date - timedelta(days=181)
+
+            # For demonstration purposes, we'll generate sample data
+            # In a real application, you would query payment/transaction data
+
+            # Generate monthly periods
+            periods = []
+            labels = []
+            revenues = []
+            total_revenue = 0
+            total_transactions = 0
+
+            current_date = start_date
+            while current_date < end_date:
+                month_start = current_date.replace(day=1)
+                if month_start.month == 12:
+                    month_end = month_start.replace(
+                        year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
+                else:
+                    month_end = month_start.replace(
+                        month=month_start.month + 1, day=1) - timedelta(days=1)
+
+                # Generate sample data for this month
+                # In a real application, you would query actual transaction data
+                month_revenue = random.uniform(1000, 5000)
+                month_transactions = random.randint(10, 50)
+                month_average = month_revenue / month_transactions if month_transactions > 0 else 0
+
+                label = month_start.strftime('%b %Y')
+                labels.append(label)
+                revenues.append(month_revenue)
+
+                periods.append({
+                    'label': label,
+                    'revenue': month_revenue,
+                    'transactions': month_transactions,
+                    'average': month_average
+                })
+
+                total_revenue += month_revenue
+                total_transactions += month_transactions
+
+                # Move to next month
+                if current_date.month == 12:
+                    current_date = current_date.replace(
+                        year=current_date.year + 1, month=1)
+                else:
+                    current_date = current_date.replace(
+                        month=current_date.month + 1)
+
+            overall_average = total_revenue / \
+                total_transactions if total_transactions > 0 else 0
+
+            report_data = {
+                'periods': periods,
+                'labels': labels,
+                'revenues': revenues,
+                'total_revenue': total_revenue,
+                'total_transactions': total_transactions,
+                'overall_average': overall_average
+            }
+            report_title = "Revenue Report"
+
+        # Get today's date for date pickers
+        today = datetime.now().date()
+
+        # Get categories for dropdowns
+        categories = CourseCategory.query.all()
+
+        print(f"Report data: {report_data}")
+
+        return render_template('admin/reports.html',
+                               report_type=report_type,
+                               report_data=report_data,
+                               report_title=report_title,
+                               today=today,
+                               timedelta=timedelta,
+                               categories=categories)
+    except Exception as e:
+        print(f"Error generating report: {str(e)}")
+        flash(f"Error generating report: {str(e)}", "danger")
+        return redirect(url_for('admin.reports'))
 
 
 @admin.route('/roles-permissions')
@@ -765,4 +1049,3 @@ def create_permission():
         return redirect(url_for('admin.roles_permissions'))
 
     return render_template('admin/create_permission.html')
-
