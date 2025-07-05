@@ -62,19 +62,34 @@
                     <!-- Student Links -->
                     {% if current_user.is_authenticated and current_user.role == 'STUDENT' %}
                         <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/dashboard') %}active{% endif %}" href="{{ url_for('student.dashboard') }}">Dashboard</a>
+                            <a class="nav-link {% if request.path.startswith('/student/dashboard') %}active{% endif %}" href="{{ url_for('student.dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/courses') and not request.path.startswith('/student/course/') %}active{% endif %}" href="{{ url_for('student.courses') }}">Courses</a>
+                            <a class="nav-link {% if request.path.startswith('/student/courses') %}active{% endif %}" href="{{ url_for('student.courses') }}">
+                                <i class="fas fa-book"></i> Courses
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/classes') %}active{% endif %}" href="{{ url_for('student.classes') }}">Live Classes</a>
+                            <a class="nav-link {% if request.path.startswith('/student/classes') %}active{% endif %}" href="{{ url_for('student.classes') }}">
+                                <i class="fas fa-chalkboard-teacher"></i> Classes
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/calendar') %}active{% endif %}" href="{{ url_for('student.calendar') }}">Calendar</a>
+                            <a class="nav-link {% if request.path.startswith('/student/quizzes') %}active{% endif %}" href="{{ url_for('student.quizzes') }}">
+                                <i class="fas fa-question-circle"></i> Quizzes
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/quizzes') %}active{% endif %}" href="{{ url_for('student.quizzes') }}">Quizzes</a>
+                            <a class="nav-link {% if request.path.startswith('/student/notes') %}active{% endif %}" href="{{ url_for('student.notes') }}">
+                                <i class="fas fa-sticky-note"></i> Notes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith('/student/calendar') %}active{% endif %}" href="{{ url_for('student.calendar') }}">
+                                <i class="fas fa-calendar-alt"></i> Calendar
+                            </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.path.startswith('/student/assignments') %}active{% endif %}" href="{{ url_for('student.assignments') }}">Assignments</a>
@@ -96,43 +111,40 @@
                     <!-- Instructor Links -->
                     {% if current_user.is_authenticated and current_user.role == 'INSTRUCTOR' %}
                         <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/instructor/dashboard') %}active{% endif %}" href="{{ url_for('instructor.dashboard') }}">Dashboard</a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="coursesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Courses
+                            <a class="nav-link {% if request.path.startswith('/instructor/dashboard') %}active{% endif %}" href="{{ url_for('instructor.dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="coursesDropdown">
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.courses') }}">My Courses</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.create_course') }}">Create Course</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.categories') }}">Categories</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.tags') }}">Tags</a></li>
-                            </ul>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="batchesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Batches
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith('/instructor/courses') %}active{% endif %}" href="{{ url_for('instructor.courses') }}">
+                                <i class="fas fa-book"></i> Courses
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="batchesDropdown">
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.batches') }}">Manage Batches</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.create_batch') }}">Create Batch</a></li>
-                            </ul>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="classesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Live Classes
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith('/instructor/batches') %}active{% endif %}" href="{{ url_for('instructor.batches') }}">
+                                <i class="fas fa-users"></i> Batches
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="classesDropdown">
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.live_classes') }}">All Classes</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.create_live_class') }}">Schedule Class</a></li>
-                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith('/instructor/live-classes') %}active{% endif %}" href="{{ url_for('instructor.live_classes') }}">
+                                <i class="fas fa-chalkboard-teacher"></i> Live Classes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith('/instructor/quizzes') %}active{% endif %}" href="{{ url_for('instructor.quizzes') }}">
+                                <i class="fas fa-question-circle"></i> Quizzes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith('/instructor/notes') %}active{% endif %}" href="{{ url_for('instructor.notes') }}">
+                                <i class="fas fa-sticky-note"></i> Notes
+                            </a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="assessmentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 Assessments
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="assessmentsDropdown">
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.quizzes') }}">Quizzes</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('instructor.assignments') }}">Assignments</a></li>
                             </ul>
                         </li>

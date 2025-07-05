@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ note.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('student.notes') }}">Notes</a></li>
+            <li class="breadcrumb-item active">{{ note.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">{{ note.title }}</h1>
+                <span class="badge bg-primary">{{ course.title }}</span>
+            </div>
+            <div class="text-muted mt-2">
+                <small>
+                    <i class="fas fa-user"></i> {{ instructor.first_name }} {{ instructor.last_name }} &bull;
+                    <i class="fas fa-calendar"></i> {{ note.created_at.strftime('%Y-%m-%d') }}
+                    {% if note.created_at != note.updated_at %}
+                        &bull; <i class="fas fa-edit"></i> Updated: {{ note.updated_at.strftime('%Y-%m-%d') }}
+                    {% endif %}
+                    {% if note.batch %}
+                        &bull; <i class="fas fa-users"></i> {{ note.batch.name }}
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="note-content mb-4">
+                {{ note.content|safe }}
+            </div>
+            
+            {% if note.file_path %}
+                <div class="mt-4">
+                    <h5>Attachment</h5>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-file-alt fa-2x me-3"></i>
+                        <div>
+                            <p class="mb-1">{{ note.file_path }}</p>
+                            <a href="{{ url_for('student.download_note', note_id=note.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-download"></i> Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        <div class="card-footer">
+            <a href="{{ url_for('student.notes') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Notes
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Edit Note{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.notes') }}">Notes</a></li>
+            <li class="breadcrumb-item active">Edit Note</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header bg-light">
+            <h1 class="h3 mb-0">Edit Note</h1>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="title" name="title" value="{{ note.title }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="course_id" class="form-label">Course <span class="text-danger">*</span></label>
+                    <select class="form-select" id="course_id" name="course_id" required>
+                        <option value="">Select a course</option>
+                        {% for course in courses %}
+                            <option value="{{ course.id }}" {% if course.id == note.course_id %}selected{% endif %}>{{ course.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="batch_id" class="form-label">Batch (Optional)</label>
+                    <select class="form-select" id="batch_id" name="batch_id">
+                        <option value="">All batches</option>
+                        {% for batch in batches %}
+                            <option value="{{ batch.id }}" data-course="{{ batch.course_id }}" {% if note.batch_id == batch.id %}selected{% endif %}>{{ batch.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">If selected, this note will only be visible to students in this batch.</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="content" class="form-label">Content <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="content" name="content" rows="10" required>{{ note.content }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="note_file" class="form-label">Attachment (Optional)</label>
+                    {% if note.file_path %}
+                        <div class="mb-2">
+                            <span class="badge bg-info">Current file: {{ note.file_path }}</span>
+                            <small class="text-muted ms-2">Upload a new file to replace it.</small>
+                        </div>
+                    {% endif %}
+                    <input type="file" class="form-control" id="note_file" name="note_file">
+                    <small class="form-text text-muted">Allowed file types: PDF, DOC, DOCX, PPT, PPTX</small>
+                </div>
+                
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="is_published" name="is_published" {% if note.is_published %}checked{% endif %}>
+                    <label class="form-check-label" for="is_published">Published</label>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('instructor.notes') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Update Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter batches based on selected course
+    const courseSelect = document.getElementById('course_id');
+    const batchSelect = document.getElementById('batch_id');
+    
+    courseSelect.addEventListener('change', function() {
+        const selectedCourseId = this.value;
+        
+        // Reset batch selection if course changes
+        if (selectedCourseId !== '{{ note.course_id }}') {
+            batchSelect.value = '';
+        }
+        
+        // Show/hide batch options based on course
+        Array.from(batchSelect.options).forEach(option => {
+            if (option.value === '') {
+                // Always show the "All batches" option
+                option.style.display = 'block';
+            } else {
+                const courseId = option.getAttribute('data-course');
+                if (courseId === selectedCourseId) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            }
+        });
+    });
+    
+    // Trigger change event to initialize
+    courseSelect.dispatchEvent(new Event('change'));
+});
+</script>
+{% endblock %} 

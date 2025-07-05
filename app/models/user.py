@@ -339,8 +339,27 @@ class Topic(db.Model):
         'lesson.id'), nullable=False)
     order = db.Column(db.Integer, nullable=False, default=0)
 
+    # Relationship with subcontent
+    subcontent = db.relationship('SubContent', backref='topic',
+                                 lazy=True, cascade='all, delete-orphan')
+
     def __repr__(self):
         return f"Topic('{self.title}', Type: {self.content_type})"
+
+
+class SubContent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.Text, nullable=True)
+    # text, pdf
+    content_type = db.Column(db.String(20), nullable=False, default='text')
+    file_path = db.Column(db.String(255), nullable=True)  # For uploaded files
+    topic_id = db.Column(db.Integer, db.ForeignKey(
+        'topic.id'), nullable=False)
+    order = db.Column(db.Integer, nullable=False, default=0)
+
+    def __repr__(self):
+        return f"SubContent('{self.title}', Type: {self.content_type})"
 
 
 class Enrollment(db.Model):
@@ -885,3 +904,31 @@ class AssignmentSubmission(db.Model):
 
     def __repr__(self):
         return f'<AssignmentSubmission {self.id} by Student {self.student_id}>'
+
+
+# Notes model for instructor to publish notes
+class Notes(db.Model):
+    __tablename__ = 'notes'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    file_path = db.Column(db.String(255), nullable=True)  # For uploaded files
+    course_id = db.Column(db.Integer, db.ForeignKey(
+        'course.id'), nullable=False)
+    batch_id = db.Column(db.Integer, db.ForeignKey(
+        'batches.id'), nullable=True)
+    instructor_id = db.Column(
+        db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_published = db.Column(db.Boolean, default=False)
+
+    # Relationships
+    course = db.relationship('Course', backref=db.backref('notes', lazy=True))
+    batch = db.relationship('Batch', backref=db.backref('notes', lazy=True))
+    instructor = db.relationship(
+        'User', backref=db.backref('published_notes', lazy=True))
+
+    def __repr__(self):
+        return f'<Notes {self.title} for Course {self.course_id}>'

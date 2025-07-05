@@ -67,9 +67,11 @@ def create_app(config_class=Config):
         def tojson_filter(obj):
             return json.dumps(obj)
 
-        # Add tojson filter
-        @app.template_filter('tojson')
-        def tojson_filter(obj):
-            return json.dumps(obj)
+        # Add normalize_path filter
+        @app.template_filter('normalize_path')
+        def normalize_path_filter(path):
+            if path:
+                return path.replace('\\', '/')
+            return path
 
     return app

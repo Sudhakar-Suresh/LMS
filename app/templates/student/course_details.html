@@ -55,13 +55,15 @@
                                                 
                                                 <div class="list-group">
                                                     {% for lesson in module.lessons %}
-                                                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                                        <a href="{{ url_for('student.lesson_details', lesson_id=lesson.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                                                             <span>
                                                                 <i class="fas fa-book-reader me-2"></i>
                                                                 {{ lesson.title }}
                                                             </span>
                                                             {% if lesson.release_days > 0 and course.enable_drip %}
                                                                 <span class="badge bg-info">Available in {{ lesson.release_days }} days</span>
+                                                            {% else %}
+                                                                <i class="fas fa-chevron-right"></i>
                                                             {% endif %}
                                                         </a>
                                                     {% endfor %}
@@ -76,6 +78,34 @@
                                 </div>
                             {% endif %}
                         </div>
+                        
+                        {% if course_notes %}
+                            <h5 class="mt-4">Course Notes</h5>
+                            <div class="list-group">
+                                {% for note in course_notes %}
+                                    <a href="{{ url_for('student.note_details', note_id=note.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ note.title }}</h6>
+                                            <small class="text-muted">
+                                                {{ note.created_at.strftime('%Y-%m-%d') }}
+                                                {% if note.batch %}
+                                                    <span class="badge bg-info">{{ note.batch.name }}</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        <span>
+                                            {% if note.file_path %}
+                                                <i class="fas fa-file-alt me-2"></i>
+                                            {% endif %}
+                                            <i class="fas fa-chevron-right"></i>
+                                        </span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                            <div class="mt-2">
+                                <a href="{{ url_for('student.notes') }}" class="btn btn-sm btn-outline-primary">View All Notes</a>
+                            </div>
+                        {% endif %}
                     {% else %}
                         <form action="{{ url_for('student.enroll_course', course_id=course.id) }}" method="POST">
                             <button type="submit" class="btn btn-primary btn-lg">
@@ -120,13 +150,27 @@
             </div>
             {% endif %}
             
-            <!-- Class Schedule Section - Will be updated with batch and class data -->
+            <!-- Class Schedule Section -->
             <div class="card mb-4">
                 <div class="card-header bg-light">
                     <h5>Live Classes</h5>
                 </div>
                 <div class="card-body">
-                    <p>No upcoming live classes scheduled.</p>
+                    {% if upcoming_classes %}
+                        <div class="list-group">
+                            {% for class in upcoming_classes %}
+                                <a href="{{ url_for('student.class_details', class_id=class.id) }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ class.title }}</h6>
+                                        <small>{{ class.start_time.strftime('%H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ class.start_time.strftime('%Y-%m-%d') }}</p>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>No upcoming live classes scheduled.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

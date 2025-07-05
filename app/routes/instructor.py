@@ -1,16 +1,16 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
-from flask_login import login_required, current_user
-from app import db
-from app.models.user import (User, UserRole, Course, Enrollment, CourseCategory,
-                             CourseTag, Module, Lesson, Topic, Batch, BatchEnrollment,
-                             LiveClass, Attendance, Quiz, Question, QuestionOption,
-                             QuestionAnswer, QuizAttempt, QuizResponse, Assignment,
-                             AssignmentSubmission, GradeItem, StudentGrade)
-from werkzeug.utils import secure_filename
-from functools import wraps
 import os
 import json
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, send_from_directory
+from flask_login import login_required, current_user
+from functools import wraps
 from datetime import datetime, timedelta
+from werkzeug.utils import secure_filename
+from app import db
+from app.models.user import User, UserRole, Course, CourseCategory, Module, Lesson, Topic, SubContent, CourseTag
+from app.models.user import Batch, BatchEnrollment, LiveClass, Attendance, Enrollment
+from app.models.user import Quiz, Question, QuestionOption, QuestionAnswer, QuizAttempt, QuizResponse
+from app.models.user import Assignment, AssignmentSubmission, Notes
+from app.utils.uploads import allowed_file, save_file, save_course_thumbnail, normalize_path
 
 instructor = Blueprint('instructor', __name__, url_prefix='/instructor')
 
@@ -377,13 +377,12 @@ def create_topic(lesson_id):
         if content_type in ['video', 'audio', 'pdf']:
             if 'file' in request.files:
                 file = request.files['file']
-                if file.filename:
-                    filename = secure_filename(file.filename)
-                    file_path = os.path.join(
-                        current_app.config['UPLOAD_FOLDER'], content_type, filename)
-                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                    file.save(file_path)
-                    new_topic.file_path = os.path.join(content_type, filename)
+                if file and file.filename:
+                    # Use the utility function to save file with unique name
+                    unique_filename = save_file(file, content_type)
+                    if unique_filename:
+                        new_topic.file_path = os.path.join(
+                            content_type, unique_filename)
 
         db.session.add(new_topic)
         db.session.commit()
@@ -425,14 +424,19 @@ def edit_topic(topic_id):
         if topic.content_type in ['video', 'audio', 'pdf']:
             if 'file' in request.files:
                 file = request.files['file']
-                if file.filename:
-                    filename = secure_filename(file.filename)
-                    file_path = os.path.join(
-                        current_app.config['UPLOAD_FOLDER'], topic.content_type, filename)
-                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                    file.save(file_path)
-                    topic.file_path = os.path.join(
-                        topic.content_type, filename)
+                if file and file.filename:
+                    # Delete old file if exists
+                    if topic.file_path:
+                        old_file_path = os.path.join(
+                            current_app.config['UPLOAD_FOLDER'], topic.file_path)
+                        if os.path.exists(old_file_path):
+                            os.remove(old_file_path)
+
+                    # Use the utility function to save file with unique name
+                    unique_filename = save_file(file, topic.content_type)
+                    if unique_filename:
+                        topic.file_path = os.path.join(
+                            topic.content_type, unique_filename)
 
         db.session.commit()
         flash('Topic updated successfully!', 'success')
@@ -1777,3 +1781,529 @@ def grade_submission(submission_id):
                            submission=submission,
                            assignment=assignment,
                            student=student)
+
+
+# Notes Management Routes
+@instructor.route('/notes')
+@login_required
+@instructor_required
+def notes():
+    # Get all notes for the instructor's courses
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+    course_ids = [course.id for course in instructor_courses]
+
+    notes_list = Notes.query.filter(
+        Notes.course_id.in_(course_ids),
+        Notes.instructor_id == current_user.id
+    ).order_by(Notes.created_at.desc()).all()
+
+    return render_template('instructor/notes.html',
+                           notes=notes_list,
+                           courses=instructor_courses)
+
+
+@instructor.route('/create-note', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def create_note():
+    # Get instructor's courses for the dropdown
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+
+    # Get instructor's batches for the dropdown
+    course_ids = [course.id for course in instructor_courses]
+    batches = Batch.query.filter(Batch.course_id.in_(course_ids)).all()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        course_id = request.form.get('course_id')
+        batch_id = request.form.get('batch_id') or None
+        is_published = 'is_published' in request.form
+
+        # Validate inputs
+        if not title or not content or not course_id:
+            flash('Please fill all required fields.', 'danger')
+            return redirect(url_for('instructor.create_note'))
+
+        # Check if course belongs to the instructor
+        course = Course.query.get(course_id)
+        if not course or course.instructor_id != current_user.id:
+            flash('Invalid course selected.', 'danger')
+            return redirect(url_for('instructor.create_note'))
+
+        # Check if batch belongs to the course
+        if batch_id:
+            batch = Batch.query.get(batch_id)
+            if not batch or batch.course_id != int(course_id):
+                flash('Invalid batch selected.', 'danger')
+                return redirect(url_for('instructor.create_note'))
+
+        # Handle file upload if present
+        file_path = None
+        if 'note_file' in request.files:
+            file = request.files['note_file']
+            if file and file.filename != '' and allowed_file(file.filename, 'document'):
+                unique_filename = save_file(file, 'pdf')
+                if unique_filename:
+                    file_path = os.path.join('pdf', unique_filename)
+
+        # Create new note
+        note = Notes(
+            title=title,
+            content=content,
+            file_path=file_path,
+            course_id=course_id,
+            batch_id=batch_id,
+            instructor_id=current_user.id,
+            is_published=is_published
+        )
+
+        db.session.add(note)
+        db.session.commit()
+
+        flash('Note created successfully!', 'success')
+        return redirect(url_for('instructor.notes'))
+
+    return render_template('instructor/create_note.html',
+                           courses=instructor_courses,
+                           batches=batches)
+
+
+@instructor.route('/edit-note/<int:note_id>', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def edit_note(note_id):
+    note = Notes.query.get_or_404(note_id)
+
+    # Check if note belongs to the instructor
+    if note.instructor_id != current_user.id:
+        flash('You do not have permission to edit this note.', 'danger')
+        return redirect(url_for('instructor.notes'))
+
+    # Get instructor's courses for the dropdown
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+
+    # Get instructor's batches for the dropdown
+    course_ids = [course.id for course in instructor_courses]
+    batches = Batch.query.filter(Batch.course_id.in_(course_ids)).all()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        course_id = request.form.get('course_id')
+        batch_id = request.form.get('batch_id') or None
+        is_published = 'is_published' in request.form
+
+        # Validate inputs
+        if not title or not content or not course_id:
+            flash('Please fill all required fields.', 'danger')
+            return redirect(url_for('instructor.edit_note', note_id=note_id))
+
+        # Check if course belongs to the instructor
+        course = Course.query.get(course_id)
+        if not course or course.instructor_id != current_user.id:
+            flash('Invalid course selected.', 'danger')
+            return redirect(url_for('instructor.edit_note', note_id=note_id))
+
+        # Check if batch belongs to the course
+        if batch_id:
+            batch = Batch.query.get(batch_id)
+            if not batch or batch.course_id != int(course_id):
+                flash('Invalid batch selected.', 'danger')
+                return redirect(url_for('instructor.edit_note', note_id=note_id))
+
+        # Handle file upload if present
+        if 'note_file' in request.files:
+            file = request.files['note_file']
+            if file and file.filename != '' and allowed_file(file.filename, 'document'):
+                # Delete old file if exists
+                if note.file_path:
+                    old_file_path = os.path.join(
+                        current_app.config['UPLOAD_FOLDER'], note.file_path)
+                    if os.path.exists(old_file_path):
+                        os.remove(old_file_path)
+
+                unique_filename = save_file(file, 'pdf')
+                if unique_filename:
+                    note.file_path = os.path.join('pdf', unique_filename)
+
+        # Update note
+        note.title = title
+        note.content = content
+        note.course_id = course_id
+        note.batch_id = batch_id
+        note.is_published = is_published
+        note.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        flash('Note updated successfully!', 'success')
+        return redirect(url_for('instructor.notes'))
+
+    return render_template('instructor/edit_note.html',
+                           note=note,
+                           courses=instructor_courses,
+                           batches=batches)
+
+
+@instructor.route('/delete-note/<int:note_id>', methods=['POST'])
+@login_required
+@instructor_required
+def delete_note(note_id):
+    note = Notes.query.get_or_404(note_id)
+
+    # Check if note belongs to the instructor
+    if note.instructor_id != current_user.id:
+        flash('You do not have permission to delete this note.', 'danger')
+        return redirect(url_for('instructor.notes'))
+
+    # Delete file if exists
+    if note.file_path:
+        file_path = os.path.join('app/static/uploads/', note.file_path)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+    db.session.delete(note)
+    db.session.commit()
+
+    flash('Note deleted successfully!', 'success')
+    return redirect(url_for('instructor.notes'))
+
+
+@instructor.route('/batch/<int:batch_id>/add-students', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def add_students_to_batch(batch_id):
+    batch = Batch.query.get_or_404(batch_id)
+
+    # Check if batch belongs to instructor's course
+    course = Course.query.get(batch.course_id)
+    if not course or course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this batch.', 'danger')
+        return redirect(url_for('instructor.batches'))
+
+    if request.method == 'POST':
+        student_ids = request.form.getlist('student_ids')
+
+        if not student_ids:
+            flash('No students selected.', 'warning')
+            return redirect(url_for('instructor.add_students_to_batch', batch_id=batch_id))
+
+        # Check if batch has reached maximum capacity
+        current_enrollments = BatchEnrollment.query.filter_by(
+            batch_id=batch_id).count()
+        remaining_slots = batch.max_students - current_enrollments
+
+        if len(student_ids) > remaining_slots:
+            flash(
+                f'Batch can only accommodate {remaining_slots} more students.', 'danger')
+            return redirect(url_for('instructor.add_students_to_batch', batch_id=batch_id))
+
+        # Enroll students in batch
+        for student_id in student_ids:
+            # Check if student is already enrolled in the batch
+            existing_enrollment = BatchEnrollment.query.filter_by(
+                batch_id=batch_id,
+                student_id=student_id
+            ).first()
+
+            if not existing_enrollment:
+                # Enroll student in batch
+                enrollment = BatchEnrollment(
+                    batch_id=batch_id,
+                    student_id=student_id,
+                    enrollment_date=datetime.utcnow()
+                )
+
+                # Also enroll in course if not already enrolled
+                course_enrollment = Enrollment.query.filter_by(
+                    student_id=student_id,
+                    course_id=batch.course_id
+                ).first()
+
+                if not course_enrollment:
+                    course_enrollment = Enrollment(
+                        student_id=student_id,
+                        course_id=batch.course_id,
+                        enrollment_date=datetime.utcnow()
+                    )
+                    db.session.add(course_enrollment)
+
+                db.session.add(enrollment)
+
+        db.session.commit()
+
+        flash('Students added to batch successfully!', 'success')
+        return redirect(url_for('instructor.batch_students', batch_id=batch_id))
+
+    # Get all students who are not enrolled in this batch
+    enrolled_student_ids = db.session.query(
+        BatchEnrollment.student_id).filter_by(batch_id=batch_id).all()
+    enrolled_student_ids = [id[0] for id in enrolled_student_ids]
+
+    available_students = User.query.filter(
+        User.role == UserRole.STUDENT,
+        User.is_active == True,
+        ~User.id.in_(enrolled_student_ids) if enrolled_student_ids else True
+    ).all()
+
+    return render_template('instructor/add_students_to_batch.html',
+                           batch=batch,
+                           available_students=available_students)
+
+
+@instructor.route('/course/<int:course_id>/subcontent/create', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def create_subcontent(course_id):
+    course = Course.query.get_or_404(course_id)
+
+    # Ensure instructor owns this course
+    if course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this course.', 'danger')
+        return redirect(url_for('instructor.courses'))
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        content_type = request.form.get('content_type')
+
+        # Get the highest order number and add 1
+        highest_order = db.session.query(db.func.max(SubContent.order)).filter_by(
+            course_id=course_id).scalar() or -1
+        new_order = highest_order + 1
+
+        new_subcontent = SubContent(
+            title=title,
+            content=content,
+            content_type=content_type,
+            course_id=course_id,
+            order=new_order
+        )
+
+        db.session.add(new_subcontent)
+        db.session.commit()
+
+        flash('Subcontent created successfully!', 'success')
+        return redirect(url_for('instructor.course_curriculum', course_id=course_id))
+
+    return render_template('instructor/create_subcontent.html', course=course)
+
+
+@instructor.route('/subcontent/<int:subcontent_id>/edit', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def edit_subcontent(subcontent_id):
+    subcontent = SubContent.query.get_or_404(subcontent_id)
+    course = Course.query.get_or_404(subcontent.course_id)
+
+    # Ensure instructor owns this course
+    if course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this subcontent.', 'danger')
+        return redirect(url_for('instructor.courses'))
+
+    if request.method == 'POST':
+        subcontent.title = request.form.get('title')
+        subcontent.content = request.form.get('content')
+        content_type = request.form.get('content_type')
+
+        # Only update content type if it's the same category (file vs text)
+        if (subcontent.content_type == 'text' and content_type == 'text') or \
+           (subcontent.content_type in ['video', 'audio', 'pdf'] and content_type in ['video', 'audio', 'pdf']):
+            subcontent.content_type = content_type
+
+        # Handle file upload for video, audio, pdf
+        if subcontent.content_type in ['video', 'audio', 'pdf']:
+            if 'file' in request.files:
+                file = request.files['file']
+                if file and file.filename:
+                    # Delete old file if exists
+                    if subcontent.file_path:
+                        old_file_path = os.path.join(
+                            current_app.config['UPLOAD_FOLDER'], subcontent.file_path)
+                        if os.path.exists(old_file_path):
+                            os.remove(old_file_path)
+
+                    # Use the utility function to save file with unique name
+                    unique_filename = save_file(file, subcontent.content_type)
+                    if unique_filename:
+                        subcontent.file_path = os.path.join(
+                            subcontent.content_type, unique_filename)
+
+        db.session.commit()
+        flash('Subcontent updated successfully!', 'success')
+        return redirect(url_for('instructor.course_curriculum', course_id=course.id))
+
+    return render_template('instructor/edit_subcontent.html',
+                           subcontent=subcontent,
+                           course=course)
+
+
+@instructor.route('/subcontent/<int:subcontent_id>/delete', methods=['POST'])
+@login_required
+@instructor_required
+def delete_subcontent(subcontent_id):
+    subcontent = SubContent.query.get_or_404(subcontent_id)
+
+    # Check if subcontent belongs to the instructor
+    if subcontent.course.instructor_id != current_user.id:
+        flash('You do not have permission to delete this subcontent.', 'danger')
+        return redirect(url_for('instructor.courses'))
+
+    # Delete file if exists
+    if subcontent.file_path:
+        file_path = os.path.join(
+            current_app.config['UPLOAD_FOLDER'], subcontent.file_path.replace('\\', '/'))
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+    db.session.delete(subcontent)
+    db.session.commit()
+
+    flash('Subcontent deleted successfully!', 'success')
+    return redirect(url_for('instructor.course_curriculum', course_id=subcontent.course_id))
+
+
+@instructor.route('/topic/<int:topic_id>/add-subcontent', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def add_subcontent(topic_id):
+    topic = Topic.query.get_or_404(topic_id)
+    lesson = Lesson.query.get_or_404(topic.lesson_id)
+    module = Module.query.get_or_404(lesson.module_id)
+    course = Course.query.get_or_404(module.course_id)
+
+    # Ensure instructor owns this course
+    if course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this topic.', 'danger')
+        return redirect(url_for('instructor.courses'))
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        content_type = request.form.get('content_type')
+
+        # Get the highest order number and add 1
+        highest_order = db.session.query(db.func.max(SubContent.order)).filter_by(
+            topic_id=topic_id).scalar() or -1
+        new_order = highest_order + 1
+
+        new_subcontent = SubContent(
+            title=title,
+            content=content,
+            content_type=content_type,
+            topic_id=topic_id,
+            order=new_order
+        )
+
+        # Handle file upload for pdf
+        if content_type == 'pdf':
+            if 'file' in request.files:
+                file = request.files['file']
+                if file and file.filename:
+                    # Use the utility function to save file with unique name
+                    unique_filename = save_file(file, 'pdf')
+                    if unique_filename:
+                        # Ensure forward slashes are used for file paths
+                        file_path = normalize_path('pdf/' + unique_filename)
+                        new_subcontent.file_path = file_path
+
+        db.session.add(new_subcontent)
+        db.session.commit()
+
+        flash('Resource added successfully!', 'success')
+        return redirect(url_for('instructor.edit_topic', topic_id=topic_id))
+
+    return render_template('instructor/create_subcontent.html',
+                           topic=topic,
+                           lesson=lesson,
+                           module=module,
+                           course=course)
+
+
+@instructor.route('/subcontent/<int:subcontent_id>/edit', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def edit_subcontent_item(subcontent_id):
+    subcontent = SubContent.query.get_or_404(subcontent_id)
+    topic = Topic.query.get_or_404(subcontent.topic_id)
+    lesson = Lesson.query.get_or_404(topic.lesson_id)
+    module = Module.query.get_or_404(lesson.module_id)
+    course = Course.query.get_or_404(module.course_id)
+
+    # Ensure instructor owns this course
+    if course.instructor_id != current_user.id:
+        flash('You do not have permission to edit this subcontent.', 'danger')
+        return redirect(url_for('instructor.courses'))
+
+    if request.method == 'POST':
+        subcontent.title = request.form.get('title')
+        subcontent.content = request.form.get('content')
+        content_type = request.form.get('content_type')
+
+        # Only update content type if it's the same category (file vs text)
+        if (subcontent.content_type == 'text' and content_type == 'text') or \
+           (subcontent.content_type == 'pdf' and content_type == 'pdf'):
+            subcontent.content_type = content_type
+
+        # Handle file upload for pdf
+        if subcontent.content_type == 'pdf':
+            if 'file' in request.files:
+                file = request.files['file']
+                if file and file.filename:
+                    # Delete old file if exists
+                    if subcontent.file_path:
+                        old_file_path = os.path.join(
+                            current_app.config['UPLOAD_FOLDER'], normalize_path(subcontent.file_path))
+                        if os.path.exists(old_file_path):
+                            os.remove(old_file_path)
+
+                    # Use the utility function to save file with unique name
+                    unique_filename = save_file(file, 'pdf')
+                    if unique_filename:
+                        # Ensure forward slashes are used for file paths
+                        file_path = normalize_path('pdf/' + unique_filename)
+                        subcontent.file_path = file_path
+
+        db.session.commit()
+        flash('Resource updated successfully!', 'success')
+        return redirect(url_for('instructor.edit_topic', topic_id=topic.id))
+
+    return render_template('instructor/edit_subcontent.html',
+                           subcontent=subcontent,
+                           topic=topic,
+                           lesson=lesson,
+                           module=module,
+                           course=course)
+
+
+@instructor.route('/subcontent/<int:subcontent_id>/delete', methods=['POST'])
+@login_required
+@instructor_required
+def delete_subcontent_item(subcontent_id):
+    subcontent = SubContent.query.get_or_404(subcontent_id)
+    topic = Topic.query.get_or_404(subcontent.topic_id)
+    lesson = Lesson.query.get_or_404(topic.lesson_id)
+    module = Module.query.get_or_404(lesson.module_id)
+    course = Course.query.get_or_404(module.course_id)
+
+    # Check if subcontent belongs to the instructor
+    if course.instructor_id != current_user.id:
+        flash('You do not have permission to delete this subcontent.', 'danger')
+        return redirect(url_for('instructor.courses'))
+
+    # Delete file if exists
+    if subcontent.file_path:
+        file_path = os.path.join(
+            current_app.config['UPLOAD_FOLDER'], subcontent.file_path)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+    db.session.delete(subcontent)
+    db.session.commit()
+
+    flash('Subcontent deleted successfully!', 'success')
+    return redirect(url_for('instructor.edit_topic', topic_id=topic.id))

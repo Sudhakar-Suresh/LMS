@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, send_from_directory, current_app
 from flask_login import login_required, current_user
 from app import db
-from app.models.user import User, UserRole, Course, Enrollment, Batch, BatchEnrollment, LiveClass, Attendance, Quiz, QuizAttempt, Question, QuestionOption, QuizResponse, Assignment, AssignmentSubmission, GradeItem, StudentGrade, Certificate, DiscussionForum, Message
+from app.models.user import User, UserRole, Course, Enrollment, Batch, BatchEnrollment, LiveClass, Attendance, Quiz, QuizAttempt, Question, QuestionOption, QuizResponse, Assignment, AssignmentSubmission, GradeItem, StudentGrade, Certificate, DiscussionForum, Message, Notes, Lesson, Module, Topic, SubContent
+from app.utils.uploads import normalize_path
 from functools import wraps
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -119,12 +120,33 @@ def course_details(course_id):
     else:
         upcoming_classes = []
 
+    # Get course notes
+    course_notes = []
+    if is_enrolled:
+        # Get all notes for this course
+        course_notes = Notes.query.filter(
+            Notes.course_id == course_id,
+            Notes.batch_id.is_(None),
+            Notes.is_published == True
+        ).order_by(Notes.created_at.desc()).limit(5).all()
+
+        # Get batch-specific notes
+        batch_ids = [batch.id for batch in batches]
+        if batch_ids:
+            batch_notes = Notes.query.filter(
+                Notes.batch_id.in_(batch_ids),
+                Notes.is_published == True
+            ).order_by(Notes.created_at.desc()).limit(5).all()
+
+            course_notes.extend(batch_notes)
+
     return render_template('student/course_details.html',
                            course=course,
                            instructor=instructor,
                            is_enrolled=is_enrolled,
                            batches=batches,
-                           upcoming_classes=upcoming_classes)
+                           upcoming_classes=upcoming_classes,
+                           course_notes=course_notes)
 
 
 @student.route('/enroll/<int:course_id>', methods=['POST'])
@@ -1003,3 +1025,311 @@ def forums():
     return render_template('student/forums.html',
                            course_forums=course_forums,
                            general_forums=general_forums)
+
+
+# Notes Routes
+@student.route('/notes')
+@login_required
+@student_required
+def notes():
+    # Get courses the student is enrolled in
+    enrollments = Enrollment.query.filter_by(student_id=current_user.id).all()
+    course_ids = [enrollment.course_id for enrollment in enrollments]
+
+    # Get batches the student is enrolled in
+    batch_enrollments = BatchEnrollment.query.filter_by(
+        student_id=current_user.id).all()
+    batch_ids = [be.batch_id for be in batch_enrollments]
+
+    # Get published notes for these courses and batches
+    course_notes = Notes.query.filter(
+        Notes.course_id.in_(course_ids),
+        Notes.batch_id.is_(None),
+        Notes.is_published == True
+    ).order_by(Notes.created_at.desc()).all()
+
+    batch_notes = Notes.query.filter(
+        Notes.batch_id.in_(batch_ids),
+        Notes.is_published == True
+    ).order_by(Notes.created_at.desc()).all()
+
+    # Combine and organize notes by course
+    notes_by_course = {}
+
+    for note in course_notes + batch_notes:
+        course_id = note.course_id
+        if course_id not in notes_by_course:
+            course = Course.query.get(course_id)
+            notes_by_course[course_id] = {
+                'course': course,
+                'notes': []
+            }
+        notes_by_course[course_id]['notes'].append(note)
+
+    return render_template('student/notes.html', notes_by_course=notes_by_course)
+
+
+@student.route('/note/<int:note_id>')
+@login_required
+@student_required
+def note_details(note_id):
+    note = Notes.query.get_or_404(note_id)
+
+    # Check if student is enrolled in the course
+    enrollment = Enrollment.query.filter_by(
+        student_id=current_user.id,
+        course_id=note.course_id
+    ).first()
+
+    # If note is batch-specific, check if student is in that batch
+    if note.batch_id:
+        batch_enrollment = BatchEnrollment.query.filter_by(
+            student_id=current_user.id,
+            batch_id=note.batch_id
+        ).first()
+
+        if not batch_enrollment:
+            flash('You do not have access to this note.', 'danger')
+            return redirect(url_for('student.notes'))
+
+    if not enrollment:
+        flash('You are not enrolled in this course.', 'danger')
+        return redirect(url_for('student.notes'))
+
+    # Check if note is published
+    if not note.is_published:
+        flash('This note is not available yet.', 'danger')
+        return redirect(url_for('student.notes'))
+
+    course = Course.query.get(note.course_id)
+    instructor = User.query.get(note.instructor_id)
+
+    return render_template('student/note_details.html',
+                           note=note,
+                           course=course,
+                           instructor=instructor)
+
+
+@student.route('/download-note/<int:note_id>')
+@login_required
+@student_required
+def download_note(note_id):
+    note = Notes.query.get_or_404(note_id)
+
+    # Check if student is enrolled in the course
+    enrollment = Enrollment.query.filter_by(
+        student_id=current_user.id,
+        course_id=note.course_id
+    ).first()
+
+    # If note is batch-specific, check if student is in that batch
+    if note.batch_id:
+        batch_enrollment = BatchEnrollment.query.filter_by(
+            student_id=current_user.id,
+            batch_id=note.batch_id
+        ).first()
+
+        if not batch_enrollment:
+            flash('You do not have access to this note.', 'danger')
+            return redirect(url_for('student.notes'))
+
+    if not enrollment:
+        flash('You are not enrolled in this course.', 'danger')
+        return redirect(url_for('student.notes'))
+
+    # Check if note is published
+    if not note.is_published:
+        flash('This note is not available yet.', 'danger')
+        return redirect(url_for('student.notes'))
+
+    # Check if note has a file
+    if not note.file_path:
+        flash('This note does not have a downloadable file.', 'danger')
+        return redirect(url_for('student.note_details', note_id=note_id))
+
+    # Get file directory
+    file_dir = os.path.join(current_app.config['UPLOAD_FOLDER'])
+
+    return send_from_directory(directory=file_dir, path=note.file_path, as_attachment=True)
+
+
+@student.route('/lesson/<int:lesson_id>')
+@login_required
+@student_required
+def lesson_details(lesson_id):
+    lesson = Lesson.query.get_or_404(lesson_id)
+    module = Module.query.get_or_404(lesson.module_id)
+    course = Course.query.get_or_404(module.course_id)
+
+    # Check if student is enrolled in the course
+    enrollment = Enrollment.query.filter_by(
+        student_id=current_user.id,
+        course_id=course.id
+    ).first()
+
+    if not enrollment:
+        flash('You are not enrolled in this course.', 'danger')
+        return redirect(url_for('student.courses'))
+
+    # Check if lesson should be available (drip content)
+    if course.enable_drip and lesson.release_days > 0:
+        days_since_enrollment = (
+            datetime.now() - enrollment.enrollment_date).days
+        if days_since_enrollment < lesson.release_days:
+            flash(
+                f'This lesson will be available {lesson.release_days - days_since_enrollment} days from now.', 'warning')
+            return redirect(url_for('student.course_details', course_id=course.id))
+
+    # Get topics for this lesson
+    topics = Topic.query.filter_by(
+        lesson_id=lesson.id).order_by(Topic.order).all()
+
+    # Update student's progress
+    if topics and enrollment.last_accessed_topic_id is None:
+        enrollment.last_accessed_topic_id = topics[0].id
+        db.session.commit()
+
+    return render_template('student/lesson_details.html',
+                           lesson=lesson,
+                           module=module,
+                           course=course,
+                           topics=topics)
+
+
+@student.route('/topic/<int:topic_id>')
+@login_required
+@student_required
+def topic_details(topic_id):
+    topic = Topic.query.get_or_404(topic_id)
+    lesson = Lesson.query.get_or_404(topic.lesson_id)
+    module = Module.query.get_or_404(lesson.module_id)
+    course = Course.query.get_or_404(module.course_id)
+
+    # Check if student is enrolled in the course
+    enrollment = Enrollment.query.filter_by(
+        student_id=current_user.id,
+        course_id=course.id
+    ).first()
+
+    if not enrollment:
+        flash('You are not enrolled in this course.', 'danger')
+        return redirect(url_for('student.courses'))
+
+    # Check if lesson should be available (drip content)
+    if course.enable_drip and lesson.release_days > 0:
+        days_since_enrollment = (
+            datetime.now() - enrollment.enrollment_date).days
+        if days_since_enrollment < lesson.release_days:
+            flash(
+                f'This lesson will be available {lesson.release_days - days_since_enrollment} days from now.', 'warning')
+            return redirect(url_for('student.course_details', course_id=course.id))
+
+    # Get all topics in this lesson for navigation
+    topics = Topic.query.filter_by(
+        lesson_id=lesson.id).order_by(Topic.order).all()
+
+    # Find previous and next topics for navigation
+    current_index = next(
+        (i for i, t in enumerate(topics) if t.id == topic.id), -1)
+    prev_topic = topics[current_index - 1] if current_index > 0 else None
+    next_topic = topics[current_index +
+                        1] if current_index < len(topics) - 1 else None
+
+    # Update student's progress
+    enrollment.last_accessed_topic_id = topic.id
+
+    # Calculate completion percentage
+    total_topics = sum(len(m.lessons) for m in course.modules)
+    if total_topics > 0:
+        completed_topics = Topic.query.join(Lesson).join(Module).filter(
+            Module.course_id == course.id,
+            Topic.id <= topic.id
+        ).count()
+        enrollment.completion_percentage = min(
+            100, (completed_topics / total_topics) * 100)
+
+    db.session.commit()
+
+    # Get related course notes
+    related_notes = Notes.query.filter(
+        Notes.course_id == course.id,
+        Notes.is_published == True
+    ).order_by(Notes.created_at.desc()).limit(3).all()
+
+    return render_template('student/topic_details.html',
+                           topic=topic,
+                           lesson=lesson,
+                           module=module,
+                           course=course,
+                           topics=topics,
+                           prev_topic=prev_topic,
+                           next_topic=next_topic,
+                           related_notes=related_notes)
+
+
+@student.route('/download-document/<path:file_path>')
+@login_required
+@student_required
+def download_document(file_path):
+    # Security check to prevent directory traversal
+    if '..' in file_path:
+        flash('Invalid file path.', 'danger')
+        return redirect(url_for('student.dashboard'))
+
+    # Normalize the file path (replace backslashes with forward slashes)
+    file_path = normalize_path(file_path)
+
+    # Get file directory
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+
+    # Check if the file exists directly in the uploads folder
+    full_path = os.path.join(upload_folder, file_path)
+    if os.path.isfile(full_path):
+        # Extract filename from path
+        filename = os.path.basename(file_path)
+        return send_from_directory(
+            directory=upload_folder,
+            path=file_path,
+            as_attachment=True,
+            download_name=filename
+        )
+
+    # If not found directly, try to extract content type and filename
+    parts = file_path.split('/')
+    if len(parts) < 1:
+        flash('Invalid file path.', 'danger')
+        return redirect(url_for('student.dashboard'))
+
+    # If path has only one part (just the filename), try to find it in common content folders
+    if len(parts) == 1:
+        filename = parts[0]
+        for content_type in ['pdf', 'video', 'audio', 'document']:
+            test_path = f"{content_type}/{filename}"
+            full_test_path = os.path.join(upload_folder, test_path)
+            if os.path.isfile(full_test_path):
+                return send_from_directory(
+                    directory=upload_folder,
+                    path=test_path,
+                    as_attachment=True,
+                    download_name=filename
+                )
+
+    # If path has multiple parts, verify the content type
+    if len(parts) >= 2:
+        content_type = parts[0]
+        filename = parts[-1]
+        if content_type not in ['pdf', 'video', 'audio', 'document']:
+            flash('Invalid file type.', 'danger')
+            return redirect(url_for('student.dashboard'))
+
+    # Final attempt to return the file
+    try:
+        return send_from_directory(
+            directory=upload_folder,
+            path=file_path,
+            as_attachment=True,
+            download_name=filename if 'filename' in locals() else os.path.basename(file_path)
+        )
+    except Exception as e:
+        flash(f'Error downloading file: File not found.', 'danger')
+        return redirect(url_for('student.dashboard'))

@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.title }} - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('student.courses') }}">Courses</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('student.course_details', course_id=course.id) }}">{{ course.title }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('student.lesson_details', lesson_id=lesson.id) }}">{{ lesson.title }}</a></li>
+            <li class="breadcrumb-item active">{{ topic.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h1 class="h3 mb-0">{{ topic.title }}</h1>
+                        <span class="badge bg-primary">
+                            {% if topic.content_type == 'text' %}
+                                <i class="fas fa-file-alt me-1"></i> Text
+                            {% elif topic.content_type == 'video' %}
+                                <i class="fas fa-video me-1"></i> Video
+                            {% elif topic.content_type == 'audio' %}
+                                <i class="fas fa-headphones me-1"></i> Audio
+                            {% elif topic.content_type == 'pdf' %}
+                                <i class="fas fa-file-pdf me-1"></i> PDF
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Topic content based on type -->
+                    {% if topic.content_type == 'text' %}
+                        <div class="topic-content">
+                            {{ topic.content|safe }}
+                        </div>
+                    {% elif topic.content_type == 'video' %}
+                        <div class="ratio ratio-16x9 mb-3">
+                            <video controls class="embed-responsive-item">
+                                <source src="{{ url_for('static', filename='uploads/' + topic.file_path) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        {% if topic.content %}
+                            <div class="mt-3">
+                                <h5>Description</h5>
+                                <div class="topic-content">
+                                    {{ topic.content|safe }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% elif topic.content_type == 'audio' %}
+                        <div class="mb-3">
+                            <audio controls class="w-100">
+                                <source src="{{ url_for('static', filename='uploads/' + topic.file_path) }}" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                        {% if topic.content %}
+                            <div class="mt-3">
+                                <h5>Description</h5>
+                                <div class="topic-content">
+                                    {{ topic.content|safe }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% elif topic.content_type == 'pdf' %}
+                        <div class="mb-3">
+                            <div class="ratio ratio-16x9">
+                                <iframe src="{{ url_for('static', filename='uploads/' + topic.file_path|normalize_path) }}#toolbar=0" 
+                                        title="{{ topic.title }}" allowfullscreen></iframe>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="{{ url_for('student.download_document', file_path=topic.file_path|normalize_path) }}" 
+                                   class="btn btn-primary">
+                                    <i class="fas fa-download me-1"></i> Download PDF
+                                </a>
+                            </div>
+                        </div>
+                        {% if topic.content %}
+                            <div class="mt-3">
+                                <h5>Description</h5>
+                                <div class="topic-content">
+                                    {{ topic.content|safe }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        {% if prev_topic %}
+                            <a href="{{ url_for('student.topic_details', topic_id=prev_topic.id) }}" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left"></i> Previous Topic
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('student.lesson_details', lesson_id=lesson.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Lesson
+                            </a>
+                        {% endif %}
+                        
+                        {% if next_topic %}
+                            <a href="{{ url_for('student.topic_details', topic_id=next_topic.id) }}" class="btn btn-primary">
+                                Next Topic <i class="fas fa-arrow-right"></i>
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('student.lesson_details', lesson_id=lesson.id) }}" class="btn btn-success">
+                                Complete Lesson <i class="fas fa-check"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if related_notes %}
+                <div class="card mt-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Related Course Notes</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for note in related_notes %}
+                                <a href="{{ url_for('student.note_details', note_id=note.id) }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ note.title }}</h6>
+                                            <small class="text-muted">{{ note.created_at.strftime('%Y-%m-%d') }}</small>
+                                        </div>
+                                        <div>
+                                            {% if note.file_path %}
+                                                <i class="fas fa-file-alt me-1"></i>
+                                            {% endif %}
+                                            <i class="fas fa-chevron-right"></i>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Additional Resources Section -->
+            {% if topic.subcontent %}
+                <div class="card mt-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Additional Resources</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for item in topic.subcontent|sort(attribute='order') %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">{{ item.title }}</h6>
+                                        <span class="badge {% if item.content_type == 'text' %}bg-info{% else %}bg-danger{% endif %}">
+                                            {% if item.content_type == 'text' %}
+                                                <i class="fas fa-file-alt me-1"></i> Text
+                                            {% elif item.content_type == 'pdf' %}
+                                                <i class="fas fa-file-pdf me-1"></i> PDF
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    
+                                    {% if item.content_type == 'text' %}
+                                        <div class="topic-content">
+                                            {{ item.content|safe }}
+                                        </div>
+                                    {% elif item.content_type == 'pdf' and item.file_path %}
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-file-pdf fa-2x me-3 text-danger"></i>
+                                            <div class="flex-grow-1">
+                                                <p class="mb-1">{{ item.file_path.split('/')[-1] }}</p>
+                                                <div class="d-flex gap-2">
+                                                    <a href="{{ url_for('static', filename='uploads/' + item.file_path|normalize_path) }}" 
+                                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                                        <i class="fas fa-eye me-1"></i> View Online
+                                                    </a>
+                                                    <a href="{{ url_for('student.download_document', file_path=item.file_path|normalize_path) }}" 
+                                                       class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-download me-1"></i> Download
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% if item.content %}
+                                            <div class="mt-3 border-top pt-3">
+                                                <h6>Description</h6>
+                                                <div class="topic-content">
+                                                    {{ item.content|safe }}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5>Course Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-3" style="height: 20px;">
+                        {% set enrollment = course.enrollments|selectattr('student_id', 'equalto', current_user.id)|first %}
+                        {% if enrollment %}
+                            <div class="progress-bar" role="progressbar" style="width: {{ enrollment.completion_percentage }}%;" 
+                                 aria-valuenow="{{ enrollment.completion_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ enrollment.completion_percentage|round|int }}%
+                            </div>
+                        {% else %}
+                            <div class="progress-bar" role="progressbar" style="width: 0%;" 
+                                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                0%
+                            </div>
+                        {% endif %}
+                    </div>
+                    <p class="text-center">Complete all topics to progress through the course</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5>Lesson Topics</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for topic_item in topics %}
+                            <a href="{{ url_for('student.topic_details', topic_id=topic_item.id) }}" 
+                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if topic_item.id == topic.id %}active{% endif %}">
+                                <span>
+                                    {% if topic_item.content_type == 'text' %}
+                                        <i class="fas fa-file-alt me-2"></i>
+                                    {% elif topic_item.content_type == 'video' %}
+                                        <i class="fas fa-video me-2"></i>
+                                    {% elif topic_item.content_type == 'audio' %}
+                                        <i class="fas fa-headphones me-2"></i>
+                                    {% elif topic_item.content_type == 'pdf' %}
+                                        <i class="fas fa-file-pdf me-2"></i>
+                                    {% endif %}
+                                    {{ topic_item.title }}
+                                </span>
+                                {% if topic_item.id == topic.id %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% endif %}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

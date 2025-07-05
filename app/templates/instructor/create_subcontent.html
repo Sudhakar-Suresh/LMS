@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Add Resource{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.courses') }}">Courses</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.course_curriculum', course_id=course.id) }}">{{ course.title }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('instructor.edit_topic', topic_id=topic.id) }}">{{ topic.title }}</a></li>
+            <li class="breadcrumb-item active">Add Resource</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h1 class="h3 mb-0">Add Resource to "{{ topic.title }}"</h1>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Resource Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required placeholder="Enter a descriptive title">
+                            <div class="form-text">Choose a clear title that describes what this resource contains.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="content_type" class="form-label">Resource Type</label>
+                            <select class="form-select" id="content_type" name="content_type" required>
+                                <option value="text">Text/HTML Content</option>
+                                <option value="pdf">PDF Document</option>
+                            </select>
+                            <div class="form-text">Select the type of resource you want to add.</div>
+                        </div>
+                        
+                        <!-- Text content (rich text editor) -->
+                        <div class="mb-4 content-section" id="text-content-section">
+                            <label for="content" class="form-label">Content</label>
+                            {{ ckeditor.create(name='content', value='') }}
+                            <div class="form-text mt-2">For PDF resources, you can add an optional description here.</div>
+                        </div>
+                        
+                        <!-- File upload for PDF -->
+                        <div class="mb-4 content-section" id="file-content-section" style="display: none;">
+                            <label for="file" class="form-label">Upload PDF</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".pdf">
+                            <div class="form-text">Select a PDF file to upload. Maximum size: 50MB.</div>
+                        </div>
+                        
+                        <div class="alert alert-info" id="pdf-info" style="display: none;">
+                            <i class="fas fa-info-circle me-2"></i> 
+                            <strong>Important:</strong> Students will be able to view and download this PDF file.
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('instructor.edit_topic', topic_id=topic.id) }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Resource</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5>Tips for Creating Resources</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Text/HTML Content</h6>
+                    <ul>
+                        <li>Use the rich text editor for formatted content</li>
+                        <li>Include images, tables, and links as needed</li>
+                        <li>Structure content with headings and lists</li>
+                        <li>Keep text concise and scannable</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">PDF Document</h6>
+                    <ul>
+                        <li>Use PDFs for detailed reference materials</li>
+                        <li>Ensure text is searchable (not scanned images)</li>
+                        <li>Include bookmarks for longer documents</li>
+                        <li>Maximum file size: 50MB</li>
+                        <li>Add a description to help students understand the content</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h5>About Additional Resources</h5>
+                </div>
+                <div class="card-body">
+                    <p>Additional resources help students deepen their understanding of the topic. Consider adding:</p>
+                    <ul>
+                        <li>Supplementary reading materials</li>
+                        <li>Practice exercises or worksheets</li>
+                        <li>Reference guides or cheat sheets</li>
+                        <li>Case studies or examples</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const contentTypeSelect = document.getElementById('content_type');
+        const textContentSection = document.getElementById('text-content-section');
+        const fileContentSection = document.getElementById('file-content-section');
+        const pdfInfo = document.getElementById('pdf-info');
+        
+        function updateContentSections() {
+            const selectedType = contentTypeSelect.value;
+            
+            if (selectedType === 'text') {
+                textContentSection.style.display = 'block';
+                fileContentSection.style.display = 'none';
+                pdfInfo.style.display = 'none';
+            } else {
+                textContentSection.style.display = 'block'; // Keep text for description
+                fileContentSection.style.display = 'block';
+                pdfInfo.style.display = 'block';
+            }
+        }
+        
+        contentTypeSelect.addEventListener('change', updateContentSections);
+        updateContentSections();
+    });
+</script>
+{% endblock %} 

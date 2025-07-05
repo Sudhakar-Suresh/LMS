@@ -15,6 +15,15 @@ ALLOWED_EXTENSIONS = {
 }
 
 
+def normalize_path(file_path):
+    """
+    Normalize file paths to use forward slashes consistently
+    """
+    if file_path:
+        return file_path.replace('\\', '/')
+    return file_path
+
+
 def allowed_file(filename, file_type='image'):
     """Check if the file extension is allowed"""
     return '.' in filename and \
@@ -71,7 +80,8 @@ def save_course_thumbnail(file):
         return None
 
     # Create thumbnails directory if it doesn't exist
-    thumbnail_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'thumbnails')
+    thumbnail_dir = os.path.join(
+        current_app.config['UPLOAD_FOLDER'], 'thumbnails')
     os.makedirs(thumbnail_dir, exist_ok=True)
 
     # Generate a secure filename
