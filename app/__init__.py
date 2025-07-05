@@ -73,7 +73,7 @@ def create_app(config_class=Config):
             if current_user.is_authenticated:
                 try:
                     # Check if current_user has role attribute and it's a student
-                    if hasattr(current_user, 'role') and hasattr(current_user.role, 'name') and current_user.role.name == 'student':
+                    if hasattr(current_user, 'role') and current_user.role == 'student':
                         # Check if created_at column exists in Message table
                         inspector = inspect(db.engine)
                         columns = [column['name']

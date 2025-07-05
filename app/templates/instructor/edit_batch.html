@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Create Batch - Instructor Dashboard{% endblock %}
+{% block title %}Edit Batch - Instructor Dashboard{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Create New Batch</h1>
+        <h1 class="h3 mb-0 text-gray-800">Edit Batch</h1>
         <a href="{{ url_for('instructor.batches') }}" class="btn btn-sm btn-secondary shadow-sm">
             <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Batches
         </a>
@@ -18,10 +18,10 @@
                     <h6 class="m-0 fw-bold text-primary">Batch Information</h6>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('instructor.create_batch') }}">
+                    <form method="POST" action="{{ url_for('instructor.edit_batch', batch_id=batch.id) }}">
                         <div class="mb-3">
                             <label for="name" class="form-label">Batch Name</label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="e.g., Morning Batch 2023" required>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ batch.name }}" required>
                         </div>
                         
                         <div class="mb-3">
@@ -29,7 +29,7 @@
                             <select class="form-select" id="course_id" name="course_id" required>
                                 <option value="">Select Course</option>
                                 {% for course in courses %}
-                                <option value="{{ course.id }}">{{ course.title }}</option>
+                                <option value="{{ course.id }}" {% if course.id == batch.course_id %}selected{% endif %}>{{ course.title }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -38,31 +38,30 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="start_date" class="form-label">Start Date</label>
-                                    <input type="date" class="form-control" id="start_date" name="start_date" required>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ batch.start_date.strftime('%Y-%m-%d') }}" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="end_date" class="form-label">End Date</label>
-                                    <input type="date" class="form-control" id="end_date" name="end_date" required>
+                                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ batch.end_date.strftime('%Y-%m-%d') }}" required>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="mb-3">
                             <label for="max_students" class="form-label">Maximum Students</label>
-                            <input type="number" class="form-control" id="max_students" name="max_students" value="30" min="1" required>
-                            <small class="form-text text-muted">Maximum number of students that can be enrolled in this batch</small>
+                            <input type="number" class="form-control" id="max_students" name="max_students" value="{{ batch.max_students }}" min="1" required>
                         </div>
                         
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="4" placeholder="Provide details about this batch, schedule information, etc."></textarea>
+                            <textarea class="form-control" id="description" name="description" rows="4">{{ batch.description }}</textarea>
                         </div>
                         
                         <div class="mb-3">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if batch.is_active %}checked{% endif %}>
                                 <label class="form-check-label" for="is_active">Active Batch</label>
                             </div>
                             <small class="form-text text-muted">Inactive batches are not visible to students</small>
@@ -71,7 +70,7 @@
                         <div class="text-end mt-4">
                             <a href="{{ url_for('instructor.batches') }}" class="btn btn-secondary">Cancel</a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Create Batch
+                                <i class="fas fa-save"></i> Save Changes
                             </button>
                         </div>
                     </form>
@@ -82,32 +81,54 @@
         <div class="col-lg-4">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 fw-bold text-primary">Batch Management Tips</h6>
+                    <h6 class="m-0 fw-bold text-primary">Batch Stats</h6>
                 </div>
                 <div class="card-body">
-                    <div class="mb-4">
-                        <h6 class="fw-bold"><i class="fas fa-calendar-alt"></i> Planning</h6>
-                        <p>Create batches based on schedule, location, or student proficiency level.</p>
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            {% set enrollments = batch.enrollments|length %}
+                            <div class="h5">{{ enrollments }}</div>
+                            <div class="text-muted">Students</div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            {% set classes = batch.live_classes|length %}
+                            <div class="h5">{{ classes }}</div>
+                            <div class="text-muted">Live Classes</div>
+                        </div>
                     </div>
                     
-                    <div class="mb-4">
-                        <h6 class="fw-bold"><i class="fas fa-users"></i> Capacity</h6>
-                        <p>The recommended batch size is 20-30 students for optimal learning experience.</p>
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <h6 class="fw-bold">Capacity</h6>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: {{ (enrollments / batch.max_students * 100) if batch.max_students > 0 else 0 }}%" 
+                                aria-valuenow="{{ enrollments }}" aria-valuemin="0" aria-valuemax="{{ batch.max_students }}">
+                                {{ enrollments }}/{{ batch.max_students }}
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="mb-4">
-                        <h6 class="fw-bold"><i class="fas fa-clock"></i> Duration</h6>
-                        <p>Plan your batch duration based on the course content and complexity.</p>
+                    <div class="mb-3">
+                        <h6 class="fw-bold">Duration</h6>
+                        {% set days = (batch.end_date - batch.start_date).days %}
+                        <p>{{ days }} days</p>
                     </div>
-                    
-                    <div class="mb-4">
-                        <h6 class="fw-bold"><i class="fas fa-tasks"></i> Next Steps</h6>
-                        <p>After creating a batch, you can:</p>
-                        <ul>
-                            <li>Add students to the batch</li>
-                            <li>Schedule live classes</li>
-                            <li>Create assignments specific to this batch</li>
-                        </ul>
+                </div>
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{{ url_for('instructor.batch_students', batch_id=batch.id) }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users"></i> Manage Students
+                        </a>
+                        <a href="{{ url_for('instructor.create_live_class') }}?batch_id={{ batch.id }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-video"></i> Schedule Live Class
+                        </a>
                     </div>
                 </div>
             </div>
@@ -124,14 +145,6 @@
             placeholder: "Select a course",
             allowClear: true
         });
-        
-        // Set default dates
-        const today = new Date();
-        const endDate = new Date();
-        endDate.setMonth(today.getMonth() + 3); // Default 3 months duration
-        
-        $('#start_date').val(formatDate(today));
-        $('#end_date').val(formatDate(endDate));
         
         // Validate dates
         $('#end_date').on('change', function() {
@@ -153,14 +166,6 @@
                 $(this).val('');
             }
         });
-        
-        // Format date as YYYY-MM-DD
-        function formatDate(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
     });
 </script>
 {% endblock %} 

@@ -1,96 +1,252 @@
 {% extends "base.html" %}
-{% block title %}Live Classes{% endblock %}
+
+{% block title %}Live Classes - Instructor Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Live Classes</h1>
-        <a href="{{ url_for('instructor.create_live_class') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Schedule New Class
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Live Classes</h1>
+        <a href="{{ url_for('instructor.create_live_class') }}" class="btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50"></i> Schedule New Class
         </a>
     </div>
 
-    {% if classes_by_batch %}
-        {% for batch_id, batch_data in classes_by_batch.items() %}
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h5>{{ batch_data.batch.name }} - {{ batch_data.batch.course.title }}</h5>
-                    <p class="text-muted mb-0">{{ batch_data.batch.start_date.strftime('%d %b %Y') }} - {{ batch_data.batch.end_date.strftime('%d %b %Y') }}</p>
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <ul class="nav nav-tabs card-header-tabs" id="classesTab" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" href="#upcoming" role="tab" aria-controls="upcoming" aria-selected="true">Upcoming</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="ongoing-tab" data-bs-toggle="tab" href="#ongoing" role="tab" aria-controls="ongoing" aria-selected="false">Ongoing</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="past-tab" data-bs-toggle="tab" href="#past" role="tab" aria-controls="past" aria-selected="false">Past</a>
+                        </li>
+                    </ul>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Date & Time</th>
-                                    <th>Platform</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% set now = now() %}
-                                {% for class in batch_data.classes %}
-                                    <tr>
-                                        <td>{{ class.title }}</td>
-                                        <td>
-                                            {{ class.start_time.strftime('%d %b %Y') }}<br>
-                                            {{ class.start_time.strftime('%I:%M %p') }} - {{ class.end_time.strftime('%I:%M %p') }}
-                                            {% if class.is_recurring %}
-                                                <span class="badge bg-info">{{ class.recurrence_pattern }}</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if class.platform == 'zoom' %}
-                                                <span class="badge bg-primary">Zoom</span>
-                                            {% elif class.platform == 'google_meet' %}
-                                                <span class="badge bg-success">Google Meet</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">{{ class.platform }}</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if class.start_time > now %}
-                                                <span class="badge bg-warning">Upcoming</span>
-                                            {% elif class.end_time < now %}
-                                                <span class="badge bg-secondary">Completed</span>
-                                            {% else %}
-                                                <span class="badge bg-success">In Progress</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <a href="{{ url_for('instructor.edit_live_class', class_id=class.id) }}" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="fas fa-edit"></i> Edit
-                                                </a>
-                                                {% if class.end_time < now %}
-                                                    <a href="{{ url_for('instructor.class_attendance', class_id=class.id) }}" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-clipboard-list"></i> Attendance
-                                                    </a>
-                                                {% endif %}
-                                                {% if class.meeting_link %}
-                                                    <a href="{{ class.meeting_link }}" target="_blank" class="btn btn-sm btn-outline-success">
-                                                        <i class="fas fa-video"></i> Join
-                                                    </a>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
+                    <div class="tab-content" id="classesTabContent">
+                        <!-- Upcoming Classes -->
+                        <div class="tab-pane fade show active" id="upcoming" role="tabpanel" aria-labelledby="upcoming-tab">
+                            {% set current_date = datetime.now() %}
+                            {% set has_upcoming = false %}
+                            
+                            {% for batch_name, classes in classes_by_batch.items() %}
+                                {% set upcoming_classes = [] %}
+                                
+                                {% for class in classes %}
+                                    {% if class.start_time > current_date %}
+                                        {% set upcoming_classes = upcoming_classes + [class] %}
+                                        {% set has_upcoming = true %}
+                                    {% endif %}
                                 {% endfor %}
-                            </tbody>
-                        </table>
+                                
+                                {% if upcoming_classes %}
+                                    <h5 class="mb-3">{{ batch_name }}</h5>
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Title</th>
+                                                    <th>Date & Time</th>
+                                                    <th>Duration</th>
+                                                    <th>Meeting Link</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for class in upcoming_classes|sort(attribute='start_time') %}
+                                                <tr>
+                                                    <td>{{ class.title }}</td>
+                                                    <td>{{ class.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                    <td>{{ (class.end_time - class.start_time).total_seconds() // 60 }} minutes</td>
+                                                    <td>
+                                                        {% if class.meeting_link %}
+                                                            <a href="{{ class.meeting_link }}" target="_blank" class="btn btn-sm btn-info">
+                                                                <i class="fas fa-video"></i> Join
+                                                            </a>
+                                                        {% else %}
+                                                            <span class="text-muted">Not set</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ url_for('instructor.edit_live_class', class_id=class.id) }}" class="btn btn-sm btn-warning">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not has_upcoming %}
+                                <div class="text-center py-4">
+                                    <p class="lead">No upcoming classes scheduled.</p>
+                                    <a href="{{ url_for('instructor.create_live_class') }}" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> Schedule New Class
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Ongoing Classes -->
+                        <div class="tab-pane fade" id="ongoing" role="tabpanel" aria-labelledby="ongoing-tab">
+                            {% set current_date = datetime.now() %}
+                            {% set has_ongoing = false %}
+                            
+                            {% for batch_name, classes in classes_by_batch.items() %}
+                                {% set ongoing_classes = [] %}
+                                
+                                {% for class in classes %}
+                                    {% if class.start_time <= current_date and class.end_time >= current_date %}
+                                        {% set ongoing_classes = ongoing_classes + [class] %}
+                                        {% set has_ongoing = true %}
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if ongoing_classes %}
+                                    <h5 class="mb-3">{{ batch_name }}</h5>
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Title</th>
+                                                    <th>Date & Time</th>
+                                                    <th>Duration</th>
+                                                    <th>Meeting Link</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for class in ongoing_classes %}
+                                                <tr class="table-success">
+                                                    <td>{{ class.title }}</td>
+                                                    <td>{{ class.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                    <td>{{ (class.end_time - class.start_time).total_seconds() // 60 }} minutes</td>
+                                                    <td>
+                                                        {% if class.meeting_link %}
+                                                            <a href="{{ class.meeting_link }}" target="_blank" class="btn btn-sm btn-success">
+                                                                <i class="fas fa-video"></i> Join Now
+                                                            </a>
+                                                        {% else %}
+                                                            <span class="text-muted">Not set</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ url_for('instructor.class_attendance', class_id=class.id) }}" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-clipboard-list"></i> Attendance
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not has_ongoing %}
+                                <div class="text-center py-4">
+                                    <p class="lead">No classes in progress at the moment.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Past Classes -->
+                        <div class="tab-pane fade" id="past" role="tabpanel" aria-labelledby="past-tab">
+                            {% set current_date = datetime.now() %}
+                            {% set has_past = false %}
+                            
+                            {% for batch_name, classes in classes_by_batch.items() %}
+                                {% set past_classes = [] %}
+                                
+                                {% for class in classes %}
+                                    {% if class.end_time < current_date %}
+                                        {% set past_classes = past_classes + [class] %}
+                                        {% set has_past = true %}
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if past_classes %}
+                                    <h5 class="mb-3">{{ batch_name }}</h5>
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Title</th>
+                                                    <th>Date & Time</th>
+                                                    <th>Duration</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for class in past_classes|sort(attribute='start_time', reverse=true) %}
+                                                <tr>
+                                                    <td>{{ class.title }}</td>
+                                                    <td>{{ class.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                    <td>{{ (class.end_time - class.start_time).total_seconds() // 60 }} minutes</td>
+                                                    <td>
+                                                        <a href="{{ url_for('instructor.class_attendance', class_id=class.id) }}" class="btn btn-sm btn-info">
+                                                            <i class="fas fa-clipboard-list"></i> Attendance
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not has_past %}
+                                <div class="text-center py-4">
+                                    <p class="lead">No past classes found.</p>
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
-        {% endfor %}
-    {% else %}
-        <div class="alert alert-info">
-            <p>You haven't scheduled any live classes yet.</p>
-            <a href="{{ url_for('instructor.create_live_class') }}" class="btn btn-primary mt-2">
-                <i class="fas fa-plus"></i> Schedule Your First Class
-            </a>
         </div>
-    {% endif %}
+    </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Show the appropriate tab based on URL hash
+        let hash = window.location.hash;
+        if (hash) {
+            $('.nav-tabs a[href="' + hash + '"]').tab('show');
+        }
+        
+        // Update URL hash when tab changes
+        $('.nav-tabs a').on('click', function(e) {
+            window.location.hash = $(this).attr('href');
+        });
+        
+        // Check for ongoing classes and switch to that tab if any exist
+        {% if classes_by_batch %}
+            {% set has_ongoing = false %}
+            {% for batch_name, classes in classes_by_batch.items() %}
+                {% for class in classes %}
+                    {% if class.start_time <= datetime.now() and class.end_time >= datetime.now() %}
+                        {% set has_ongoing = true %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            
+            {% if has_ongoing and not request.args.get('tab') %}
+                $('.nav-tabs a[href="#ongoing"]').tab('show');
+            {% endif %}
+        {% endif %}
+    });
+</script>
 {% endblock %} 

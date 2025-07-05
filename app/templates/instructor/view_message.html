@@ -51,7 +51,7 @@
                     {{ message.content|nl2br }}
                 </div>
                 
-                <div class="message-actions mt-4 text-right">
+                <div class="message-actions mt-4 text-end">
                     <a href="{{ url_for('instructor.messages') }}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Back to Messages
                     </a>
@@ -71,14 +71,14 @@
             <div class="card-body">
                 <p><strong>Status:</strong> 
                     {% if message.is_read %}
-                        <span class="badge badge-success">Read</span>
+                        <span class="badge bg-success">Read</span>
                     {% else %}
-                        <span class="badge badge-warning">Unread</span>
+                        <span class="badge bg-warning text-dark">Unread</span>
                     {% endif %}
                 </p>
                 
                 {% if message.parent_message_id %}
-                <p><strong>Type:</strong> <span class="badge badge-info">Reply</span></p>
+                <p><strong>Type:</strong> <span class="badge bg-info">Reply</span></p>
                 {% endif %}
                 
                 <hr>
@@ -88,7 +88,7 @@
                     <h6>About Sender</h6>
                     <p><strong>Name:</strong> {{ sender.first_name }} {{ sender.last_name }}</p>
                     <p><strong>Email:</strong> {{ sender.email }}</p>
-                    <p><strong>Role:</strong> {{ sender.role.name|capitalize }}</p>
+                    <p><strong>Role:</strong> {{ sender.role }}</p>
                 </div>
                 {% endif %}
                 
@@ -97,7 +97,7 @@
                     <h6>About Recipient</h6>
                     <p><strong>Name:</strong> {{ recipient.first_name }} {{ recipient.last_name }}</p>
                     <p><strong>Email:</strong> {{ recipient.email }}</p>
-                    <p><strong>Role:</strong> {{ recipient.role.name|capitalize }}</p>
+                    <p><strong>Role:</strong> {{ recipient.role }}</p>
                 </div>
                 {% endif %}
             </div>

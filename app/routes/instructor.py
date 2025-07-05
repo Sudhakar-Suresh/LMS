@@ -711,9 +711,11 @@ def batches():
     instructor_courses = Course.query.filter_by(
         instructor_id=current_user.id).all()
     course_ids = [course.id for course in instructor_courses]
-    batches = Batch.query.filter(Batch.course_id.in_(course_ids)).all()
 
-    return render_template('instructor/batches.html', batches=batches, courses=instructor_courses)
+    batches = Batch.query.filter(Batch.course_id.in_(
+        course_ids)).order_by(Batch.start_date.desc()).all()
+
+    return render_template('instructor/batches.html', batches=batches, courses=instructor_courses, datetime=datetime)
 
 
 @instructor.route('/create-batch', methods=['GET', 'POST'])
@@ -721,47 +723,52 @@ def batches():
 @instructor_required
 def create_batch():
     # Get instructor's courses for the dropdown
-    instructor_courses = Course.query.filter_by(
-        instructor_id=current_user.id).all()
+    courses = Course.query.filter_by(instructor_id=current_user.id).all()
+
+    if not courses:
+        flash('You need to create a course first before creating a batch.', 'warning')
+        return redirect(url_for('instructor.courses'))
 
     if request.method == 'POST':
-        name = request.form.get('name')
-        course_id = request.form.get('course_id')
+        name = request.form['name']
+        course_id = request.form['course_id']
         start_date = datetime.strptime(
-            request.form.get('start_date'), '%Y-%m-%d').date()
+            request.form['start_date'], '%Y-%m-%d').date()
         end_date = datetime.strptime(
-            request.form.get('end_date'), '%Y-%m-%d').date()
-        max_students = request.form.get('max_students')
-        description = request.form.get('description')
+            request.form['end_date'], '%Y-%m-%d').date()
+        max_students = request.form['max_students']
+        description = request.form['description']
+        is_active = 'is_active' in request.form
 
-        # Validate inputs
-        if not name or not course_id or not start_date or not end_date:
-            flash('Please fill all required fields.', 'danger')
-            return redirect(url_for('instructor.create_batch'))
-
-        # Check if course belongs to the instructor
+        # Validate course belongs to instructor
         course = Course.query.get(course_id)
         if not course or course.instructor_id != current_user.id:
             flash('Invalid course selected.', 'danger')
             return redirect(url_for('instructor.create_batch'))
 
-        # Create new batch
+        # Validate dates
+        if end_date < start_date:
+            flash('End date cannot be before start date.', 'danger')
+            return redirect(url_for('instructor.create_batch'))
+
+        # Create batch
         batch = Batch(
             name=name,
             course_id=course_id,
             start_date=start_date,
             end_date=end_date,
-            max_students=max_students if max_students else 30,
-            description=description
+            max_students=max_students,
+            description=description,
+            is_active=is_active
         )
 
         db.session.add(batch)
         db.session.commit()
 
-        flash('Batch created successfully!', 'success')
+        flash('Batch created successfully.', 'success')
         return redirect(url_for('instructor.batches'))
 
-    return render_template('instructor/create_batch.html', courses=instructor_courses)
+    return render_template('instructor/create_batch.html', courses=courses)
 
 
 @instructor.route('/edit-batch/<int:batch_id>', methods=['GET', 'POST'])
@@ -829,20 +836,15 @@ def batch_students(batch_id):
         flash('You do not have permission to view this batch.', 'danger')
         return redirect(url_for('instructor.batches'))
 
-    # Get all students in the batch
+    # Get enrolled students
     enrollments = BatchEnrollment.query.filter_by(batch_id=batch_id).all()
     students = []
     for enrollment in enrollments:
         student = User.query.get(enrollment.student_id)
         if student:
-            students.append({
-                'id': student.id,
-                'name': f"{student.first_name} {student.last_name}",
-                'email': student.email,
-                'enrollment_date': enrollment.enrollment_date
-            })
+            students.append(student)
 
-    return render_template('instructor/batch_students.html', batch=batch, students=students)
+    return render_template('instructor/batch_students.html', batch=batch, students=students, datetime=datetime, timedelta=timedelta)
 
 
 @instructor.route('/batch/<int:batch_id>/add-student', methods=['GET', 'POST'])
@@ -862,7 +864,7 @@ def add_student_to_batch(batch_id):
 
         # Find student by email
         student = User.query.filter_by(
-            email=student_email, role=UserRole.STUDENT).first()
+            email=student_email, role_id=3).first()  # 3 is the Student role ID
 
         if not student:
             flash('Student not found with this email.', 'danger')
@@ -916,166 +918,190 @@ def add_student_to_batch(batch_id):
     return render_template('instructor/add_student_to_batch.html', batch=batch)
 
 
+@instructor.route('/batch/<int:batch_id>/remove-student', methods=['POST'])
+@login_required
+@instructor_required
+def remove_student_from_batch(batch_id):
+    batch = Batch.query.get_or_404(batch_id)
+
+    # Check if batch belongs to instructor's course
+    course = Course.query.get(batch.course_id)
+    if not course or course.instructor_id != current_user.id:
+        flash('You do not have permission to remove students from this batch.', 'danger')
+        return redirect(url_for('instructor.batches'))
+
+    student_id = request.form.get('student_id')
+    if not student_id:
+        flash('No student specified.', 'danger')
+        return redirect(url_for('instructor.batch_students', batch_id=batch_id))
+
+    # Find the enrollment
+    enrollment = BatchEnrollment.query.filter_by(
+        batch_id=batch_id, student_id=student_id).first()
+
+    if not enrollment:
+        flash('Student is not enrolled in this batch.', 'warning')
+        return redirect(url_for('instructor.batch_students', batch_id=batch_id))
+
+    # Get student info for the flash message
+    student = User.query.get(student_id)
+    student_name = f"{student.first_name} {student.last_name}" if student else "Student"
+
+    # Remove the enrollment
+    db.session.delete(enrollment)
+    db.session.commit()
+
+    flash(f'{student_name} has been removed from the batch.', 'success')
+    return redirect(url_for('instructor.batch_students', batch_id=batch_id))
+
+
 # Live Class Management Routes
 @instructor.route('/live-classes')
 @login_required
 @instructor_required
 def live_classes():
     # Get all live classes for the instructor
-    classes = LiveClass.query.filter_by(instructor_id=current_user.id).all()
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+    course_ids = [course.id for course in instructor_courses]
 
-    # Group classes by batch
+    batches = Batch.query.filter(Batch.course_id.in_(course_ids)).all()
+    batch_ids = [batch.id for batch in batches]
+
+    live_classes = LiveClass.query.filter(
+        LiveClass.batch_id.in_(batch_ids)).all()
+
+    # Organize classes by batch
     classes_by_batch = {}
-    for cls in classes:
-        batch = Batch.query.get(cls.batch_id)
-        if batch:
-            if batch.id not in classes_by_batch:
-                classes_by_batch[batch.id] = {
-                    'batch': batch,
-                    'classes': []
-                }
-            classes_by_batch[batch.id]['classes'].append(cls)
+    for live_class in live_classes:
+        batch = Batch.query.get(live_class.batch_id)
+        if batch.name not in classes_by_batch:
+            classes_by_batch[batch.name] = []
+        classes_by_batch[batch.name].append(live_class)
 
-    return render_template('instructor/live_classes.html', classes_by_batch=classes_by_batch)
+    return render_template('instructor/live_classes.html', classes_by_batch=classes_by_batch, datetime=datetime, timedelta=timedelta)
 
 
 @instructor.route('/create-live-class', methods=['GET', 'POST'])
 @login_required
 @instructor_required
 def create_live_class():
-    # Get instructor's batches for the dropdown
+    # Get all batches for instructor's courses
     instructor_courses = Course.query.filter_by(
         instructor_id=current_user.id).all()
     course_ids = [course.id for course in instructor_courses]
     batches = Batch.query.filter(Batch.course_id.in_(course_ids)).all()
 
+    if not batches:
+        flash('You need to create a batch first before scheduling a live class.', 'warning')
+        return redirect(url_for('instructor.batches'))
+
     if request.method == 'POST':
-        title = request.form.get('title')
-        batch_id = request.form.get('batch_id')
-        start_time_str = request.form.get('start_time')
-        end_time_str = request.form.get('end_time')
-        platform = request.form.get('platform')
-        meeting_link = request.form.get('meeting_link')
-        meeting_id = request.form.get('meeting_id')
-        meeting_password = request.form.get('meeting_password')
-        description = request.form.get('description')
-        is_recurring = 'is_recurring' in request.form
-        recurrence_pattern = request.form.get(
-            'recurrence_pattern') if is_recurring else None
+        title = request.form['title']
+        batch_id = request.form['batch_id']
+        scheduled_date = request.form['scheduled_date']
+        scheduled_time = request.form['scheduled_time']
+        duration_minutes = int(request.form['duration_minutes'])
+        meeting_link = request.form['meeting_link']
+        description = request.form['description']
+        is_recorded = 'is_recorded' in request.form
 
-        # Validate inputs
-        if not title or not batch_id or not start_time_str or not end_time_str or not platform:
-            flash('Please fill all required fields.', 'danger')
-            return redirect(url_for('instructor.create_live_class'))
+        # Combine date and time
+        scheduled_datetime = datetime.strptime(
+            f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
 
-        # Parse datetime strings
-        try:
-            start_time = datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
-            end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
-        except ValueError:
-            flash('Invalid date/time format.', 'danger')
-            return redirect(url_for('instructor.create_live_class'))
-
-        # Check if batch belongs to instructor's course
-        batch = Batch.query.get(batch_id)
-        if not batch or batch.course.instructor_id != current_user.id:
-            flash('Invalid batch selected.', 'danger')
-            return redirect(url_for('instructor.create_live_class'))
+        # Calculate end time based on duration
+        end_time = scheduled_datetime + timedelta(minutes=duration_minutes)
 
         # Create new live class
         live_class = LiveClass(
             title=title,
             batch_id=batch_id,
             instructor_id=current_user.id,
-            start_time=start_time,
+            start_time=scheduled_datetime,
             end_time=end_time,
-            platform=platform,
             meeting_link=meeting_link,
-            meeting_id=meeting_id,
-            meeting_password=meeting_password,
             description=description,
-            is_recurring=is_recurring,
-            recurrence_pattern=recurrence_pattern
+            is_recurring=False
         )
 
         db.session.add(live_class)
         db.session.commit()
 
-        flash('Live class scheduled successfully!', 'success')
+        if 'send_notification' in request.form:
+            # TODO: Send notification to students
+            pass
+
+        flash('Live class scheduled successfully.', 'success')
         return redirect(url_for('instructor.live_classes'))
 
-    return render_template('instructor/create_live_class.html', batches=batches)
+    today = datetime.now().date()
+    return render_template('instructor/create_live_class.html', batches=batches, today=today)
 
 
-@instructor.route('/edit-live-class/<int:class_id>', methods=['GET', 'POST'])
+@instructor.route('/live-class/<int:class_id>/edit', methods=['GET', 'POST'])
 @login_required
 @instructor_required
 def edit_live_class(class_id):
     live_class = LiveClass.query.get_or_404(class_id)
 
-    # Check if class belongs to instructor
-    if live_class.instructor_id != current_user.id:
+    # Check if instructor has access to this class
+    batch = Batch.query.get(live_class.batch_id)
+    if not batch:
+        flash('Batch not found.', 'danger')
+        return redirect(url_for('instructor.live_classes'))
+
+    course = Course.query.get(batch.course_id)
+    if not course or course.instructor_id != current_user.id:
         flash('You do not have permission to edit this class.', 'danger')
         return redirect(url_for('instructor.live_classes'))
 
-    # Get instructor's batches for the dropdown
+    # Get all batches for instructor's courses
     instructor_courses = Course.query.filter_by(
         instructor_id=current_user.id).all()
     course_ids = [course.id for course in instructor_courses]
     batches = Batch.query.filter(Batch.course_id.in_(course_ids)).all()
 
     if request.method == 'POST':
-        title = request.form.get('title')
-        batch_id = request.form.get('batch_id')
-        start_time_str = request.form.get('start_time')
-        end_time_str = request.form.get('end_time')
-        platform = request.form.get('platform')
-        meeting_link = request.form.get('meeting_link')
-        meeting_id = request.form.get('meeting_id')
-        meeting_password = request.form.get('meeting_password')
-        description = request.form.get('description')
-        is_recurring = 'is_recurring' in request.form
-        recurrence_pattern = request.form.get(
-            'recurrence_pattern') if is_recurring else None
+        title = request.form['title']
+        batch_id = request.form['batch_id']
+        scheduled_date = request.form['scheduled_date']
+        scheduled_time = request.form['scheduled_time']
+        duration_minutes = int(request.form['duration_minutes'])
+        meeting_link = request.form['meeting_link']
+        description = request.form['description']
+        is_recorded = 'is_recorded' in request.form
+        send_notification = 'send_notification' in request.form
 
-        # Validate inputs
-        if not title or not batch_id or not start_time_str or not end_time_str or not platform:
-            flash('Please fill all required fields.', 'danger')
-            return redirect(url_for('instructor.edit_live_class', class_id=class_id))
+        # Combine date and time
+        scheduled_datetime = datetime.strptime(
+            f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
 
-        # Parse datetime strings
-        try:
-            start_time = datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
-            end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
-        except ValueError:
-            flash('Invalid date/time format.', 'danger')
-            return redirect(url_for('instructor.edit_live_class', class_id=class_id))
+        # Calculate end time based on duration
+        end_time = scheduled_datetime + timedelta(minutes=duration_minutes)
 
-        # Check if batch belongs to instructor's course
-        batch = Batch.query.get(batch_id)
-        if not batch or batch.course.instructor_id != current_user.id:
-            flash('Invalid batch selected.', 'danger')
-            return redirect(url_for('instructor.edit_live_class', class_id=class_id))
-
-        # Update live class
+        # Update class
         live_class.title = title
         live_class.batch_id = batch_id
-        live_class.start_time = start_time
+        live_class.start_time = scheduled_datetime
         live_class.end_time = end_time
-        live_class.platform = platform
         live_class.meeting_link = meeting_link
-        live_class.meeting_id = meeting_id
-        live_class.meeting_password = meeting_password
         live_class.description = description
-        live_class.is_recurring = is_recurring
-        live_class.recurrence_pattern = recurrence_pattern
 
         db.session.commit()
 
-        flash('Live class updated successfully!', 'success')
+        if send_notification:
+            # TODO: Send notification to students
+            pass
+
+        flash('Live class updated successfully.', 'success')
         return redirect(url_for('instructor.live_classes'))
 
-    return render_template('instructor/edit_live_class.html', live_class=live_class, batches=batches)
+    return render_template('instructor/edit_live_class.html',
+                           live_class=live_class,
+                           batches=batches,
+                           datetime=datetime,
+                           timedelta=timedelta)
 
 
 @instructor.route('/live-class/<int:class_id>/attendance', methods=['GET', 'POST'])
@@ -1084,85 +1110,108 @@ def edit_live_class(class_id):
 def class_attendance(class_id):
     live_class = LiveClass.query.get_or_404(class_id)
 
-    # Check if class belongs to instructor
-    if live_class.instructor_id != current_user.id:
-        flash('You do not have permission to view this class.', 'danger')
+    # Check if instructor has access to this class
+    batch = Batch.query.get(live_class.batch_id)
+    if not batch:
+        flash('Batch not found.', 'danger')
         return redirect(url_for('instructor.live_classes'))
 
-    batch = Batch.query.get(live_class.batch_id)
+    course = Course.query.get(batch.course_id)
+    if not course or course.instructor_id != current_user.id:
+        flash('You do not have permission to access this class.', 'danger')
+        return redirect(url_for('instructor.live_classes'))
 
-    # Get all students in the batch
-    batch_students = User.query.join(BatchEnrollment).filter(
-        BatchEnrollment.batch_id == batch.id).all()
-
-    if request.method == 'POST':
-        # Process attendance form
-        for student in batch_students:
-            status = request.form.get(f'status_{student.id}')
-            join_time_str = request.form.get(f'join_time_{student.id}')
-            leave_time_str = request.form.get(f'leave_time_{student.id}')
-
-            # Parse times if provided
-            join_time = None
-            leave_time = None
-            duration_minutes = None
-
-            if join_time_str:
-                try:
-                    join_time = datetime.strptime(join_time_str, '%H:%M')
-                    join_time = datetime.combine(
-                        live_class.start_time.date(), join_time.time())
-                except ValueError:
-                    pass
-
-            if leave_time_str:
-                try:
-                    leave_time = datetime.strptime(leave_time_str, '%H:%M')
-                    leave_time = datetime.combine(
-                        live_class.start_time.date(), leave_time.time())
-                except ValueError:
-                    pass
-
-            # Calculate duration if both times are provided
-            if join_time and leave_time:
-                duration = leave_time - join_time
-                duration_minutes = int(duration.total_seconds() / 60)
-
-            # Check if attendance record exists
-            attendance = Attendance.query.filter_by(
-                class_id=class_id, student_id=student.id).first()
-
-            if attendance:
-                # Update existing record
-                attendance.status = status
-                attendance.join_time = join_time
-                attendance.leave_time = leave_time
-                attendance.duration_minutes = duration_minutes
-            else:
-                # Create new record
-                attendance = Attendance(
-                    class_id=class_id,
-                    student_id=student.id,
-                    status=status,
-                    join_time=join_time,
-                    leave_time=leave_time,
-                    duration_minutes=duration_minutes
-                )
-                db.session.add(attendance)
-
-        db.session.commit()
-        flash('Attendance recorded successfully!', 'success')
-        return redirect(url_for('instructor.class_attendance', class_id=class_id))
+    # Get enrolled students
+    enrollments = BatchEnrollment.query.filter_by(batch_id=batch.id).all()
+    students = []
+    for enrollment in enrollments:
+        student = User.query.get(enrollment.student_id)
+        if student:
+            students.append(student)
 
     # Get existing attendance records
-    attendances = {a.student_id: a for a in Attendance.query.filter_by(
-        class_id=class_id).all()}
+    attendance_records = set()
+    attendance_notes = {}
+
+    existing_records = Attendance.query.filter_by(class_id=class_id).all()
+    for record in existing_records:
+        if record.status == 'present':
+            attendance_records.add(record.student_id)
+        # No notes field in Attendance model, using join_time instead for comments
+        if record.join_time:
+            attendance_notes[record.student_id] = record.join_time.strftime(
+                '%H:%M')
+
+    attendance_count = len(attendance_records)
+
+    if request.method == 'POST':
+        # Get submitted attendance data
+        present_students = request.form.getlist('attendance[]')
+        present_student_ids = [int(id) for id in present_students]
+
+        # Process each student
+        for student in students:
+            # Get time for this student
+            join_time_str = request.form.get(f'join_time_{student.id}', '')
+            join_time = None
+            if join_time_str:
+                try:
+                    # Try to parse the time
+                    current_date = datetime.now().date()
+                    join_time = datetime.strptime(
+                        f"{current_date} {join_time_str}", "%Y-%m-%d %H:%M")
+                except ValueError:
+                    pass
+
+            # Check if record exists
+            existing_record = Attendance.query.filter_by(
+                class_id=class_id, student_id=student.id).first()
+
+            if student.id in present_student_ids:
+                # Student is present
+                if existing_record:
+                    # Update existing record
+                    existing_record.status = 'present'
+                    if join_time:
+                        existing_record.join_time = join_time
+                else:
+                    # Create new record
+                    new_record = Attendance(
+                        class_id=class_id,
+                        student_id=student.id,
+                        status='present',
+                        join_time=join_time
+                    )
+                    db.session.add(new_record)
+            else:
+                # Student is absent
+                if existing_record:
+                    # Update existing record
+                    existing_record.status = 'absent'
+                    existing_record.join_time = None
+                else:
+                    # Create new record
+                    new_record = Attendance(
+                        class_id=class_id,
+                        student_id=student.id,
+                        status='absent',
+                        join_time=None
+                    )
+                    db.session.add(new_record)
+
+        db.session.commit()
+        flash('Attendance recorded successfully.', 'success')
+        return redirect(url_for('instructor.class_attendance', class_id=class_id))
 
     return render_template('instructor/class_attendance.html',
                            live_class=live_class,
                            batch=batch,
-                           students=batch_students,
-                           attendances=attendances)
+                           students=students,
+                           attendance_records=attendance_records,
+                           attendance_notes=attendance_notes,
+                           attendance_count=attendance_count,
+                           datetime=datetime,
+                           timedelta=timedelta)
 
 
 # Quiz and Assessment Routes
@@ -2024,77 +2073,58 @@ def add_students_to_batch(batch_id):
     # Check if batch belongs to instructor's course
     course = Course.query.get(batch.course_id)
     if not course or course.instructor_id != current_user.id:
-        flash('You do not have permission to edit this batch.', 'danger')
+        flash('You do not have permission to add students to this batch.', 'danger')
         return redirect(url_for('instructor.batches'))
 
+    # Get currently enrolled students
+    enrolled_students = User.query.join(BatchEnrollment).filter(
+        BatchEnrollment.batch_id == batch_id).all()
+    enrolled_ids = [student.id for student in enrolled_students]
+    enrolled_count = len(enrolled_ids)
+
+    # Get all students who are not enrolled in this batch
+    available_students = User.query.filter(
+        User.role_id == 3,  # Student role
+        ~User.id.in_(enrolled_ids) if enrolled_ids else True
+    ).all()
+
+    # Add enrolled courses count to each student
+    for student in available_students:
+        student.enrolled_courses = BatchEnrollment.query.filter_by(
+            student_id=student.id).all()
+
     if request.method == 'POST':
-        student_ids = request.form.getlist('student_ids')
+        student_ids = request.form.getlist('student_ids[]')
 
         if not student_ids:
             flash('No students selected.', 'warning')
             return redirect(url_for('instructor.add_students_to_batch', batch_id=batch_id))
 
-        # Check if batch has reached maximum capacity
-        current_enrollments = BatchEnrollment.query.filter_by(
-            batch_id=batch_id).count()
-        remaining_slots = batch.max_students - current_enrollments
-
-        if len(student_ids) > remaining_slots:
+        # Check if adding these students would exceed batch capacity
+        if batch.max_students > 0 and enrolled_count + len(student_ids) > batch.max_students:
             flash(
-                f'Batch can only accommodate {remaining_slots} more students.', 'danger')
+                f'Cannot add {len(student_ids)} students. Batch capacity would be exceeded.', 'danger')
             return redirect(url_for('instructor.add_students_to_batch', batch_id=batch_id))
 
-        # Enroll students in batch
+        # Add students to batch
+        enrollment_date = datetime.now().date()
         for student_id in student_ids:
-            # Check if student is already enrolled in the batch
-            existing_enrollment = BatchEnrollment.query.filter_by(
+            enrollment = BatchEnrollment(
                 batch_id=batch_id,
-                student_id=student_id
-            ).first()
-
-            if not existing_enrollment:
-                # Enroll student in batch
-                enrollment = BatchEnrollment(
-                    batch_id=batch_id,
-                    student_id=student_id,
-                    enrollment_date=datetime.utcnow()
-                )
-
-                # Also enroll in course if not already enrolled
-                course_enrollment = Enrollment.query.filter_by(
-                    student_id=student_id,
-                    course_id=batch.course_id
-                ).first()
-
-                if not course_enrollment:
-                    course_enrollment = Enrollment(
-                        student_id=student_id,
-                        course_id=batch.course_id,
-                        enrollment_date=datetime.utcnow()
-                    )
-                    db.session.add(course_enrollment)
-
-                db.session.add(enrollment)
+                student_id=int(student_id),
+                enrollment_date=enrollment_date
+            )
+            db.session.add(enrollment)
 
         db.session.commit()
-
-        flash('Students added to batch successfully!', 'success')
+        flash(
+            f'Successfully added {len(student_ids)} students to the batch.', 'success')
         return redirect(url_for('instructor.batch_students', batch_id=batch_id))
-
-    # Get all students who are not enrolled in this batch
-    enrolled_student_ids = db.session.query(
-        BatchEnrollment.student_id).filter_by(batch_id=batch_id).all()
-    enrolled_student_ids = [id[0] for id in enrolled_student_ids]
-
-    available_students = User.query.filter(
-        User.role == UserRole.STUDENT,
-        User.is_active == True,
-        ~User.id.in_(enrolled_student_ids) if enrolled_student_ids else True
-    ).all()
 
     return render_template('instructor/add_students_to_batch.html',
                            batch=batch,
-                           available_students=available_students)
+                           available_students=available_students,
+                           enrolled_count=enrolled_count)
 
 
 @instructor.route('/course/<int:course_id>/subcontent/create', methods=['GET', 'POST'])
@@ -2503,3 +2533,124 @@ def get_course_modules(course_id):
                     for module in modules]
 
     return jsonify({'modules': modules_data})
+
+
+@instructor.route('/course/<int:course_id>/add-student', methods=['POST'])
+@login_required
+@instructor_required
+def add_student_to_course(course_id):
+    course = Course.query.get_or_404(course_id)
+
+    # Ensure instructor owns this course
+    if course.instructor_id != current_user.id:
+        flash('You do not have permission to modify this course.', 'danger')
+        return redirect(url_for('instructor.courses'))
+
+    student_email = request.form.get('student_email')
+
+    # Find student by email
+    student = User.query.filter_by(
+        email=student_email, role=UserRole.STUDENT).first()
+
+    if not student:
+        flash('Student not found with this email.', 'danger')
+        return redirect(url_for('instructor.course_details', course_id=course_id))
+
+    # Check if student is already enrolled in the course
+    existing_enrollment = Enrollment.query.filter_by(
+        student_id=student.id,
+        course_id=course_id
+    ).first()
+
+    if existing_enrollment:
+        flash('Student is already enrolled in this course.', 'warning')
+        return redirect(url_for('instructor.course_details', course_id=course_id))
+
+    # Enroll student in course
+    enrollment = Enrollment(
+        student_id=student.id,
+        course_id=course_id,
+        enrollment_date=datetime.utcnow()
+    )
+    db.session.add(enrollment)
+    db.session.commit()
+
+    flash(
+        f'Student {student.first_name} {student.last_name} added to course successfully!', 'success')
+    return redirect(url_for('instructor.course_details', course_id=course_id))
+
+
+@instructor.route('/course/<int:course_id>/remove-student', methods=['POST'])
+@login_required
+@instructor_required
+def remove_student_from_course(course_id):
+    course = Course.query.get_or_404(course_id)
+
+    # Ensure instructor owns this course
+    if course.instructor_id != current_user.id:
+        flash('You do not have permission to modify this course.', 'danger')
+        return redirect(url_for('instructor.courses'))
+
+    student_id = request.form.get('student_id')
+
+    if not student_id:
+        flash('Student ID is required.', 'danger')
+        return redirect(url_for('instructor.course_details', course_id=course_id))
+
+    # Find enrollment
+    enrollment = Enrollment.query.filter_by(
+        student_id=student_id,
+        course_id=course_id
+    ).first()
+
+    if not enrollment:
+        flash('Student is not enrolled in this course.', 'warning')
+        return redirect(url_for('instructor.course_details', course_id=course_id))
+
+    # Remove student from any batches in this course
+    batch_enrollments = BatchEnrollment.query.join(Batch).filter(
+        BatchEnrollment.student_id == student_id,
+        Batch.course_id == course_id
+    ).all()
+
+    for batch_enrollment in batch_enrollments:
+        db.session.delete(batch_enrollment)
+
+    # Delete enrollment
+    db.session.delete(enrollment)
+    db.session.commit()
+
+    flash('Student removed from course successfully!', 'success')
+    return redirect(url_for('instructor.course_details', course_id=course_id))
+
+
+@instructor.route('/live-class/<int:class_id>/cancel', methods=['POST'])
+@login_required
+@instructor_required
+def cancel_live_class(class_id):
+    live_class = LiveClass.query.get_or_404(class_id)
+
+    # Check if instructor has access to this class
+    batch = Batch.query.get(live_class.batch_id)
+    if not batch:
+        flash('Batch not found.', 'danger')
+        return redirect(url_for('instructor.live_classes'))
+
+    course = Course.query.get(batch.course_id)
+    if not course or course.instructor_id != current_user.id:
+        flash('You do not have permission to cancel this class.', 'danger')
+        return redirect(url_for('instructor.live_classes'))
+
+    # Store class info for the flash message
+    class_title = live_class.title
+    class_date = live_class.start_time.strftime('%Y-%m-%d %H:%M')
+
+    # Delete the class
+    db.session.delete(live_class)
+    db.session.commit()
+
+    # TODO: Send notification to enrolled students
+
+    flash(
+        f'Class "{class_title}" scheduled for {class_date} has been cancelled.', 'success')
+    return redirect(url_for('instructor.live_classes'))

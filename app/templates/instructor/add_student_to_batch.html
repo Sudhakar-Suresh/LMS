@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Add Student to Batch - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Add Student to Batch</h1>
+        <a href="{{ url_for('instructor.batch_students', batch_id=batch.id) }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Batch Students
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Batch Information</h6>
+                </div>
+                <div class="card-body">
+                    <h5>{{ batch.name }}</h5>
+                    <p><strong>Course:</strong> {{ batch.course.title }}</p>
+                    <p><strong>Start Date:</strong> {{ batch.start_date.strftime('%d %b %Y') }}</p>
+                    <p><strong>End Date:</strong> {{ batch.end_date.strftime('%d %b %Y') }}</p>
+                    
+                    {% set enrolled_count = batch.enrollments|length if batch.enrollments else 0 %}
+                    <p><strong>Capacity:</strong> {{ enrolled_count }}/{{ batch.max_students }}</p>
+                    
+                    <div class="progress mb-4">
+                        <div class="progress-bar" role="progressbar" style="width: {{ (enrolled_count / batch.max_students * 100) if batch.max_students > 0 else 0 }}%" 
+                            aria-valuenow="{{ enrolled_count }}" aria-valuemin="0" aria-valuemax="{{ batch.max_students }}">
+                            {{ enrolled_count }}/{{ batch.max_students }}
+                        </div>
+                    </div>
+                    
+                    {% if enrolled_count >= batch.max_students %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> This batch has reached its maximum capacity.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{{ url_for('instructor.add_students_to_batch', batch_id=batch.id) }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users"></i> Add Multiple Students
+                        </a>
+                        <a href="{{ url_for('instructor.create_live_class') }}?batch_id={{ batch.id }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-video"></i> Schedule Live Class
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Add Student by Email</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('instructor.add_student_to_batch', batch_id=batch.id) }}">
+                        <div class="mb-3">
+                            <label for="student_email" class="form-label">Student Email</label>
+                            <div class="input-group">
+                                <input type="email" class="form-control" id="student_email" name="student_email" 
+                                       placeholder="Enter student email address" required>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Find & Add
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">Enter the email address of a registered student to add them to this batch.</small>
+                        </div>
+                    </form>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-info">
+                        <h6 class="fw-bold"><i class="fas fa-info-circle"></i> Tips</h6>
+                        <ul>
+                            <li>The student must already be registered in the system.</li>
+                            <li>Students will be automatically enrolled in the course associated with this batch.</li>
+                            <li>To add multiple students at once, use the "Add Multiple Students" option.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

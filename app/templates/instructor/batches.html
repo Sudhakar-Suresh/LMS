@@ -39,9 +39,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% set now = now() %}
+                                {% set current_date = datetime.now().date() %}
                                 {% for batch in batches %}
-                                    {% if batch.start_date <= now.date() and batch.end_date >= now.date() %}
+                                    {% if batch.start_date <= current_date and batch.end_date >= current_date %}
                                         <tr>
                                             <td>{{ batch.name }}</td>
                                             <td>{{ batch.course.title }}</td>
@@ -83,9 +83,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% set now = now() %}
+                                {% set current_date = datetime.now().date() %}
                                 {% for batch in batches %}
-                                    {% if batch.end_date < now.date() %}
+                                    {% if batch.end_date < current_date %}
                                         <tr>
                                             <td>{{ batch.name }}</td>
                                             <td>{{ batch.course.title }}</td>
@@ -127,9 +127,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% set now = now() %}
+                                {% set current_date = datetime.now().date() %}
                                 {% for batch in batches %}
-                                    {% if batch.start_date > now.date() %}
+                                    {% if batch.start_date > current_date %}
                                         <tr>
                                             <td>{{ batch.name }}</td>
                                             <td>{{ batch.course.title }}</td>

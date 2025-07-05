@@ -34,14 +34,14 @@
                                     <div class="btn-group w-100">
                                         <a href="{{ url_for('parent.child_details', student_id=child.student.id) }}" class="btn btn-sm btn-primary">View Details</a>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ child.student.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                                 More Actions
                                             </button>
-                                            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                                                <a class="dropdown-item" href="{{ url_for('parent.child_assignments', student_id=child.student.id) }}">Assignments</a>
-                                                <a class="dropdown-item" href="{{ url_for('parent.child_grades', student_id=child.student.id) }}">Grades</a>
-                                                <a class="dropdown-item" href="{{ url_for('parent.child_messages', student_id=child.student.id) }}">Messages</a>
-                                            </div>
+                                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ child.student.id }}">
+                                                <li><a class="dropdown-item" href="{{ url_for('parent.child_assignments', student_id=child.student.id) }}">Assignments</a></li>
+                                                <li><a class="dropdown-item" href="{{ url_for('parent.child_grades', student_id=child.student.id) }}">Grades</a></li>
+                                                <li><a class="dropdown-item" href="{{ url_for('parent.child_messages', student_id=child.student.id) }}">Messages</a></li>
+                                            </ul>
                                         </div>
                                     </div>
                                 </div>

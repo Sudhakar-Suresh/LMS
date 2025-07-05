@@ -48,19 +48,19 @@
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('instructor.reply_message', message_id=original_message.id) }}">
-                    <div class="form-group">
-                        <label for="recipient">To</label>
+                    <div class="mb-3">
+                        <label for="recipient" class="form-label">To</label>
                         <input type="text" class="form-control" id="recipient" value="{{ other_user.first_name }} {{ other_user.last_name }}" readonly>
                     </div>
-                    <div class="form-group">
-                        <label for="subject">Subject</label>
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject</label>
                         <input type="text" class="form-control" id="subject" value="Re: {{ original_message.subject }}" readonly>
                     </div>
-                    <div class="form-group">
-                        <label for="content">Message</label>
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Message</label>
                         <textarea class="form-control" id="content" name="content" rows="10" required></textarea>
                     </div>
-                    <div class="form-group text-right">
+                    <div class="text-end">
                         <a href="{{ url_for('instructor.view_message', message_id=original_message.id) }}" class="btn btn-secondary">Cancel</a>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-paper-plane"></i> Send Reply
@@ -86,8 +86,8 @@
                 </div>
                 <p><strong>Name:</strong> {{ other_user.first_name }} {{ other_user.last_name }}</p>
                 <p><strong>Email:</strong> {{ other_user.email }}</p>
-                <p><strong>Role:</strong> {{ other_user.role.name|capitalize }}</p>
-                {% if other_user.role == 'STUDENT' %}
+                <p><strong>Role:</strong> {{ other_user.role }}</p>
+                {% if other_user.role == 'student' %}
                     <p><strong>Student ID:</strong> {{ other_user.id }}</p>
                 {% endif %}
             </div>

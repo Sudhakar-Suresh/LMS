@@ -1,150 +1,196 @@
 {% extends "base.html" %}
-{% block title %}Schedule Live Class{% endblock %}
+
+{% block title %}Schedule Live Class - Instructor Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('instructor.live_classes') }}">Live Classes</a></li>
-            <li class="breadcrumb-item active">Schedule New Class</li>
-        </ol>
-    </nav>
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Schedule Live Class</h1>
+        <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Live Classes
+        </a>
+    </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h2>Schedule New Live Class</h2>
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Class Information</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('instructor.create_live_class') }}">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Class Title</label>
+                            <input type="text" class="form-control" id="title" name="title" placeholder="e.g., Introduction to Python" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="batch_id" class="form-label">Batch</label>
+                            <select class="form-select" id="batch_id" name="batch_id" required>
+                                <option value="">Select Batch</option>
+                                {% for batch in batches %}
+                                <option value="{{ batch.id }}" {% if batch.id == request.args.get('batch_id', type=int) %}selected{% endif %}>
+                                    {{ batch.name }} - {{ batch.course.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="scheduled_date" class="form-label">Date</label>
+                                    <input type="date" class="form-control" id="scheduled_date" name="scheduled_date" 
+                                           value="{{ today.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="scheduled_time" class="form-label">Time</label>
+                                    <input type="time" class="form-control" id="scheduled_time" name="scheduled_time" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="duration_minutes" class="form-label">Duration (minutes)</label>
+                            <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" 
+                                   value="60" min="15" step="5" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="meeting_link" class="form-label">Meeting Link</label>
+                            <input type="url" class="form-control" id="meeting_link" name="meeting_link" 
+                                   placeholder="https://zoom.us/j/123456789">
+                            <small class="form-text text-muted">Zoom, Google Meet, or other video conferencing platform link</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" 
+                                      placeholder="Provide details about what will be covered in this class"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="is_recorded" name="is_recorded">
+                                <label class="form-check-label" for="is_recorded">Will be recorded</label>
+                            </div>
+                            <small class="form-text text-muted">Check if this class will be recorded for later viewing</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="send_notification" name="send_notification" checked>
+                                <label class="form-check-label" for="send_notification">Send notification to students</label>
+                            </div>
+                            <small class="form-text text-muted">Notify enrolled students about this class</small>
+                        </div>
+                        
+                        <div class="text-end mt-4">
+                            <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-calendar-plus"></i> Schedule Class
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <form method="POST" action="{{ url_for('instructor.create_live_class') }}">
-                <div class="mb-3">
-                    <label for="title" class="form-label">Class Title <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="title" name="title" required>
+        
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Scheduling Tips</h6>
                 </div>
-
-                <div class="mb-3">
-                    <label for="batch_id" class="form-label">Batch <span class="text-danger">*</span></label>
-                    <select class="form-select" id="batch_id" name="batch_id" required>
-                        <option value="">Select a batch</option>
-                        {% for batch in batches %}
-                            <option value="{{ batch.id }}">{{ batch.name }} ({{ batch.course.title }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="start_time" class="form-label">Start Date & Time <span class="text-danger">*</span></label>
-                            <input type="datetime-local" class="form-control" id="start_time" name="start_time" required>
-                        </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6 class="fw-bold"><i class="fas fa-clock"></i> Best Timing</h6>
+                        <p>Schedule classes during weekdays between 6-9 PM for highest attendance rates.</p>
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="end_time" class="form-label">End Date & Time <span class="text-danger">*</span></label>
-                            <input type="datetime-local" class="form-control" id="end_time" name="end_time" required>
-                        </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="fw-bold"><i class="fas fa-video"></i> Platform Suggestions</h6>
+                        <ul>
+                            <li>Zoom: Best for large classes with breakout rooms</li>
+                            <li>Google Meet: Simple interface, good for shorter sessions</li>
+                            <li>Microsoft Teams: Good integration with Office tools</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="fw-bold"><i class="fas fa-lightbulb"></i> Preparation</h6>
+                        <p>Send materials to students at least 24 hours before the class for better engagement.</p>
                     </div>
                 </div>
-
-                <div class="mb-3">
-                    <label for="platform" class="form-label">Platform <span class="text-danger">*</span></label>
-                    <select class="form-select" id="platform" name="platform" required>
-                        <option value="zoom">Zoom</option>
-                        <option value="google_meet">Google Meet</option>
-                        <option value="microsoft_teams">Microsoft Teams</option>
-                        <option value="other">Other</option>
-                    </select>
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Recurring Classes</h6>
                 </div>
-
-                <div id="meetingDetailsSection">
-                    <div class="mb-3">
-                        <label for="meeting_link" class="form-label">Meeting Link</label>
-                        <input type="url" class="form-control" id="meeting_link" name="meeting_link" placeholder="https://...">
-                        <div class="form-text">The URL students will use to join the meeting</div>
-                    </div>
-
-                    <div class="row" id="zoomFields">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="meeting_id" class="form-label">Meeting ID</label>
-                                <input type="text" class="form-control" id="meeting_id" name="meeting_id">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="meeting_password" class="form-label">Meeting Password</label>
-                                <input type="text" class="form-control" id="meeting_password" name="meeting_password">
-                            </div>
-                        </div>
-                    </div>
+                <div class="card-body">
+                    <p>Need to schedule weekly or bi-weekly classes?</p>
+                    <button type="button" class="btn btn-info w-100" data-bs-toggle="modal" data-bs-target="#recurringClassModal">
+                        <i class="fas fa-calendar-alt"></i> Set Up Recurring Schedule
+                    </button>
                 </div>
-
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring">
-                        <label class="form-check-label" for="is_recurring">
-                            Recurring Class
-                        </label>
-                    </div>
-                </div>
-
-                <div class="mb-3" id="recurrenceSection" style="display: none;">
-                    <label for="recurrence_pattern" class="form-label">Recurrence Pattern</label>
-                    <select class="form-select" id="recurrence_pattern" name="recurrence_pattern">
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="biweekly">Bi-weekly</option>
-                        <option value="monthly">Monthly</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label for="description" class="form-label">Description</label>
-                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                    <div class="form-text">Class details, topics to be covered, preparation requirements, etc.</div>
-                </div>
-
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Schedule Class</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Recurring Class Modal -->
+<div class="modal fade" id="recurringClassModal" tabindex="-1" aria-labelledby="recurringClassModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recurringClassModalLabel">Set Up Recurring Classes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>This feature will be available soon! You'll be able to:</p>
+                <ul>
+                    <li>Schedule weekly, bi-weekly, or monthly classes</li>
+                    <li>Set start and end dates for the recurring series</li>
+                    <li>Choose specific days of the week</li>
+                    <li>Manage exceptions for holidays or special events</li>
+                </ul>
+                <p>For now, please schedule each class individually.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set minimum datetime for start time to now
+    $(document).ready(function() {
+        // Initialize select2 for better dropdown experience
+        $('#batch_id').select2({
+            placeholder: "Select a batch",
+            allowClear: true
+        });
+        
+        // Set default time to current hour + 1
         const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const nowStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+        const hours = String(now.getHours() + 1).padStart(2, '0');
+        const minutes = '00';
+        $('#scheduled_time').val(`${hours}:${minutes}`);
         
-        document.getElementById('start_time').setAttribute('min', nowStr);
-        
-        // Update end time min value when start time changes
-        document.getElementById('start_time').addEventListener('change', function() {
-            document.getElementById('end_time').setAttribute('min', this.value);
+        // Validate date (can't be in the past)
+        $('#scheduled_date').on('change', function() {
+            const selectedDate = new Date($(this).val());
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
             
-            // If end time is before start time, update it
-            if (document.getElementById('end_time').value < this.value) {
-                document.getElementById('end_time').value = this.value;
+            if (selectedDate < today) {
+                alert('Cannot schedule classes in the past');
+                $(this).val("{{ today.strftime('%Y-%m-%d') }}");
             }
-        });
-        
-        // Toggle recurrence section
-        document.getElementById('is_recurring').addEventListener('change', function() {
-            document.getElementById('recurrenceSection').style.display = this.checked ? 'block' : 'none';
-        });
-        
-        // Toggle Zoom-specific fields
-        document.getElementById('platform').addEventListener('change', function() {
-            document.getElementById('zoomFields').style.display = 
-                (this.value === 'zoom') ? 'flex' : 'none';
         });
     });
 </script>

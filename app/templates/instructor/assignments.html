@@ -15,18 +15,18 @@
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">All Assignments</h6>
-                    <div class="dropdown no-arrow">
-                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    <h6 class="m-0 fw-bold text-primary">All Assignments</h6>
+                    <div class="dropdown">
+                        <a class="btn btn-sm btn-light dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-filter fa-sm fa-fw"></i> Filter
                         </a>
-                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                            <div class="dropdown-header">Filter By:</div>
-                            <a class="dropdown-item" href="{{ url_for('instructor.assignments') }}">All Assignments</a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="dropdownMenuLink">
+                            <li><h6 class="dropdown-header">Filter By:</h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('instructor.assignments') }}">All Assignments</a></li>
                             {% for course in courses %}
-                            <a class="dropdown-item" href="{{ url_for('instructor.assignments', course_id=course.id) }}">{{ course.title }}</a>
+                            <li><a class="dropdown-item" href="{{ url_for('instructor.assignments', course_id=course.id) }}">{{ course.title }}</a></li>
                             {% endfor %}
-                        </div>
+                        </ul>
                     </div>
                 </div>
                 <div class="card-body">

@@ -21,10 +21,10 @@
             <div class="card-header py-3">
                 <ul class="nav nav-tabs card-header-tabs" id="message-tabs" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" id="received-tab" data-toggle="tab" href="#received" role="tab" aria-controls="received" aria-selected="true">Received Messages</a>
+                        <a class="nav-link active" id="received-tab" data-bs-toggle="tab" href="#received" role="tab" aria-controls="received" aria-selected="true">Received Messages</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="sent-tab" data-toggle="tab" href="#sent" role="tab" aria-controls="sent" aria-selected="false">Sent Messages</a>
+                        <a class="nav-link" id="sent-tab" data-bs-toggle="tab" href="#sent" role="tab" aria-controls="sent" aria-selected="false">Sent Messages</a>
                     </li>
                 </ul>
             </div>
@@ -45,7 +45,7 @@
                                 </thead>
                                 <tbody>
                                     {% for message in received_messages %}
-                                    <tr class="{{ 'font-weight-bold' if not message.is_read else '' }}">
+                                    <tr class="{{ 'fw-bold' if not message.is_read else '' }}">
                                         <td>
                                             {% if message.sender %}
                                                 {{ message.sender.first_name }} {{ message.sender.last_name }}
@@ -59,9 +59,9 @@
                                         <td>{{ message.sent_at.strftime('%b %d, %Y %I:%M %p') }}</td>
                                         <td>
                                             {% if message.is_read %}
-                                                <span class="badge badge-success">Read</span>
+                                                <span class="badge bg-success">Read</span>
                                             {% else %}
-                                                <span class="badge badge-warning">Unread</span>
+                                                <span class="badge bg-warning text-dark">Unread</span>
                                             {% endif %}
                                         </td>
                                         <td>

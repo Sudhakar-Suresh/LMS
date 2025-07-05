@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Live Class - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Edit Live Class</h1>
+        <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Live Classes
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Class Information</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('instructor.edit_live_class', class_id=live_class.id) }}">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Class Title</label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ live_class.title }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="batch_id" class="form-label">Batch</label>
+                            <select class="form-select" id="batch_id" name="batch_id" required>
+                                <option value="">Select Batch</option>
+                                {% for batch in batches %}
+                                <option value="{{ batch.id }}" {% if batch.id == live_class.batch_id %}selected{% endif %}>
+                                    {{ batch.name }} - {{ batch.course.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="scheduled_date" class="form-label">Date</label>
+                                    <input type="date" class="form-control" id="scheduled_date" name="scheduled_date" 
+                                           value="{{ live_class.start_time.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="scheduled_time" class="form-label">Time</label>
+                                    <input type="time" class="form-control" id="scheduled_time" name="scheduled_time" 
+                                           value="{{ live_class.start_time.strftime('%H:%M') }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="duration_minutes" class="form-label">Duration (minutes)</label>
+                            <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" 
+                                   value="{{ (live_class.end_time - live_class.start_time).total_seconds() // 60 }}" min="15" step="5" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="meeting_link" class="form-label">Meeting Link</label>
+                            <input type="url" class="form-control" id="meeting_link" name="meeting_link" 
+                                   value="{{ live_class.meeting_link }}">
+                            <small class="form-text text-muted">Zoom, Google Meet, or other video conferencing platform link</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4">{{ live_class.description }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="is_recorded" name="is_recorded" 
+                                       {% if live_class.is_recurring %}checked{% endif %}>
+                                <label class="form-check-label" for="is_recorded">Will be recorded</label>
+                            </div>
+                            <small class="form-text text-muted">Check if this class will be recorded for later viewing</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="send_notification" name="send_notification" checked>
+                                <label class="form-check-label" for="send_notification">Send notification to students</label>
+                            </div>
+                            <small class="form-text text-muted">Notify enrolled students about this class update</small>
+                        </div>
+                        
+                        <div class="text-end mt-4">
+                            <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Class Status</h6>
+                </div>
+                <div class="card-body">
+                    {% set current_time = datetime.now() %}
+                    {% if live_class.start_time > current_time %}
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-clock"></i> Upcoming</h5>
+                            <p>This class is scheduled to start in:</p>
+                            <p class="h4 text-center" id="countdown"></p>
+                        </div>
+                    {% elif live_class.start_time <= current_time and live_class.end_time >= current_time %}
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-play-circle"></i> In Progress</h5>
+                            <p>This class is currently in session!</p>
+                            {% if live_class.meeting_link %}
+                                <a href="{{ live_class.meeting_link }}" target="_blank" class="btn btn-success btn-block">
+                                    <i class="fas fa-video"></i> Join Now
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-secondary">
+                            <h5><i class="fas fa-check-circle"></i> Completed</h5>
+                            <p>This class has already ended.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{{ url_for('instructor.class_attendance', class_id=live_class.id) }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-clipboard-list"></i> Manage Attendance
+                        </a>
+                        {% if live_class.meeting_link %}
+                            <a href="{{ live_class.meeting_link }}" target="_blank" class="list-group-item list-group-item-action">
+                                <i class="fas fa-video"></i> Open Meeting Link
+                            </a>
+                        {% endif %}
+                        <button type="button" class="list-group-item list-group-item-action text-danger" data-bs-toggle="modal" data-bs-target="#cancelClassModal">
+                            <i class="fas fa-times-circle"></i> Cancel Class
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Class Modal -->
+<div class="modal fade" id="cancelClassModal" tabindex="-1" aria-labelledby="cancelClassModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelClassModalLabel">Confirm Cancellation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel this live class?</p>
+                <p class="text-danger">This action cannot be undone and will notify all enrolled students.</p>
+            </div>
+            <div class="modal-footer">
+                <form method="POST" action="{{ url_for('instructor.cancel_live_class', class_id=live_class.id) }}">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Cancel Class</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Initialize select2 for better dropdown experience
+        $('#batch_id').select2({
+            placeholder: "Select a batch",
+            allowClear: true
+        });
+        
+        // Countdown timer for upcoming classes
+        {% if live_class.start_time > current_time %}
+            const classTime = new Date("{{ live_class.start_time.strftime('%Y-%m-%d %H:%M:%S') }}");
+            
+            function updateCountdown() {
+                const now = new Date();
+                const diff = classTime - now;
+                
+                if (diff <= 0) {
+                    $('#countdown').text("Class is starting!");
+                    return;
+                }
+                
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                $('#countdown').text(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+            }
+            
+            // Update countdown every second
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        {% endif %}
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Quiz - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Edit Quiz</h1>
+        <div>
+            <a href="{{ url_for('instructor.quizzes') }}" class="btn btn-sm btn-secondary shadow-sm">
+                <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Quizzes
+            </a>
+            <a href="{{ url_for('instructor.quiz_questions', quiz_id=quiz.id) }}" class="btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-question-circle fa-sm text-white-50"></i> Manage Questions
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Quiz Information</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('instructor.edit_quiz', quiz_id=quiz.id) }}">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Quiz Title</label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ quiz.title }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4">{{ quiz.description }}</textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="course_id" class="form-label">Course</label>
+                                    <select class="form-select" id="course_id" name="course_id" required>
+                                        <option value="">Select Course</option>
+                                        {% for course in courses %}
+                                        <option value="{{ course.id }}" {% if course.id == quiz.course_id %}selected{% endif %}>{{ course.title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="time_limit" class="form-label">Time Limit (minutes)</label>
+                                    <input type="number" class="form-control" id="time_limit" name="time_limit" value="{{ quiz.time_limit_minutes }}" min="0">
+                                    <small class="form-text text-muted">Leave empty or 0 for no time limit</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="passing_score" class="form-label">Passing Score (%)</label>
+                                    <input type="number" class="form-control" id="passing_score" name="passing_score" value="{{ quiz.passing_score }}" min="0" max="100">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_attempts" class="form-label">Maximum Attempts</label>
+                                    <input type="number" class="form-control" id="max_attempts" name="max_attempts" value="{{ quiz.max_attempts }}" min="0">
+                                    <small class="form-text text-muted">Leave empty or 0 for unlimited attempts</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="is_published" name="is_published" {% if quiz.is_published %}checked{% endif %}>
+                                        <label class="form-check-label" for="is_published">Publish Quiz</label>
+                                    </div>
+                                    <small class="form-text text-muted">Make this quiz available to students</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="shuffle_questions" name="shuffle_questions" {% if quiz.shuffle_questions %}checked{% endif %}>
+                                        <label class="form-check-label" for="shuffle_questions">Shuffle Questions</label>
+                                    </div>
+                                    <small class="form-text text-muted">Randomize question order for each attempt</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="show_results" name="show_results" {% if quiz.show_results %}checked{% endif %}>
+                                        <label class="form-check-label" for="show_results">Show Results</label>
+                                    </div>
+                                    <small class="form-text text-muted">Show correct answers after submission</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="requires_manual_grading" name="requires_manual_grading" {% if quiz.requires_manual_grading %}checked{% endif %}>
+                                        <label class="form-check-label" for="requires_manual_grading">Requires Manual Grading</label>
+                                    </div>
+                                    <small class="form-text text-muted">For essay questions or manual review</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="available_from" class="form-label">Available From</label>
+                                    <input type="datetime-local" class="form-control" id="available_from" name="available_from" value="{{ quiz.available_from.strftime('%Y-%m-%dT%H:%M') if quiz.available_from else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="available_until" class="form-label">Available Until</label>
+                                    <input type="datetime-local" class="form-control" id="available_until" name="available_until" value="{{ quiz.available_until.strftime('%Y-%m-%dT%H:%M') if quiz.available_until else '' }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end mt-4">
+                            <a href="{{ url_for('instructor.quizzes') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Quiz Stats</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="h5">{{ quiz.questions|length }}</div>
+                            <div class="text-muted">Questions</div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="h5">{{ quiz.attempts|length }}</div>
+                            <div class="text-muted">Attempts</div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <h6 class="fw-bold">Average Score</h6>
+                        {% if quiz.attempts %}
+                            {% set total_score = 0 %}
+                            {% for attempt in quiz.attempts %}
+                                {% set total_score = total_score + attempt.score %}
+                            {% endfor %}
+                            {% set avg_score = (total_score / quiz.attempts|length)|round(2) %}
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: {{ avg_score }}%" aria-valuenow="{{ avg_score }}" aria-valuemin="0" aria-valuemax="100">{{ avg_score }}%</div>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No attempts yet</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="fw-bold">Pass Rate</h6>
+                        {% if quiz.attempts %}
+                            {% set passed = 0 %}
+                            {% for attempt in quiz.attempts %}
+                                {% if attempt.score >= quiz.passing_score %}
+                                    {% set passed = passed + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                            {% set pass_rate = (passed / quiz.attempts|length * 100)|round(2) %}
+                            <div class="progress">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ pass_rate }}%" aria-valuenow="{{ pass_rate }}" aria-valuemin="0" aria-valuemax="100">{{ pass_rate }}%</div>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No attempts yet</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{{ url_for('instructor.quiz_questions', quiz_id=quiz.id) }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-question-circle"></i> Manage Questions
+                        </a>
+                        <a href="{{ url_for('instructor.add_question', quiz_id=quiz.id) }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-plus"></i> Add Question
+                        </a>
+                        <a href="{{ url_for('instructor.quiz_results', quiz_id=quiz.id) }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-chart-bar"></i> View Results
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Initialize select2 for better dropdown experience
+        $('#course_id').select2({
+            placeholder: "Select a course",
+            allowClear: true
+        });
+    });
+</script>
+{% endblock %} 
