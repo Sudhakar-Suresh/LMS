@@ -1,0 +1,55 @@
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Profile Management</h5>
+    </div>
+    <div class="list-group list-group-flush">
+        {% if current_user.role.name == 'student' %}
+        <a href="{{ url_for('student.dashboard') }}" class="list-group-item list-group-item-action {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+        </a>
+        {% elif current_user.role.name == 'instructor' %}
+        <a href="{{ url_for('instructor.dashboard') }}" class="list-group-item list-group-item-action {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+        </a>
+        {% elif current_user.role.name == 'admin' %}
+        <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+        </a>
+        {% elif current_user.role.name == 'parent' %}
+        <a href="{{ url_for('parent.dashboard') }}" class="list-group-item list-group-item-action {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+        </a>
+        {% elif current_user.role.name == 'guest' %}
+        <a href="{{ url_for('guest.dashboard') }}" class="list-group-item list-group-item-action {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+        </a>
+        {% endif %}
+        <a href="{{ url_for('auth.profile') }}" class="list-group-item list-group-item-action {% if active_page == 'profile' %}active{% endif %}">
+            <i class="fas fa-user-circle me-2"></i> My Profile
+        </a>
+        <a href="{{ url_for('auth.change_password') }}" class="list-group-item list-group-item-action {% if active_page == 'change_password' %}active{% endif %}">
+            <i class="fas fa-key me-2"></i> Change Password
+        </a>
+        {% if current_user.role.name == 'student' %}
+        <a href="{{ url_for('student.grades') }}" class="list-group-item list-group-item-action {% if active_page == 'grades' %}active{% endif %}">
+            <i class="fas fa-graduation-cap me-2"></i> My Grades
+        </a>
+        <a href="{{ url_for('student.assignments') }}" class="list-group-item list-group-item-action {% if active_page == 'assignments' %}active{% endif %}">
+            <i class="fas fa-tasks me-2"></i> My Assignments
+        </a>
+        <a href="{{ url_for('student.messages') }}" class="list-group-item list-group-item-action {% if active_page == 'messages' %}active{% endif %}">
+            <i class="fas fa-envelope me-2"></i> Messages
+            {% if unread_messages > 0 %}
+            <span class="badge bg-danger">{{ unread_messages }}</span>
+            {% endif %}
+        </a>
+        {% elif current_user.role.name == 'instructor' %}
+        <a href="{{ url_for('instructor.courses') }}" class="list-group-item list-group-item-action {% if active_page == 'courses' %}active{% endif %}">
+            <i class="fas fa-book me-2"></i> My Courses
+        </a>
+        <a href="{{ url_for('instructor.assignments') }}" class="list-group-item list-group-item-action {% if active_page == 'assignments' %}active{% endif %}">
+            <i class="fas fa-tasks me-2"></i> Assignments
+        </a>
+        {% endif %}
+    </div>
+</div> 

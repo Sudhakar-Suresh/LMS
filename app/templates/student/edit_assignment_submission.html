@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Submission - Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Edit Submission</h1>
+        <a href="{{ url_for('student.assignment_details', assignment_id=assignment.id) }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Assignment
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ assignment.title }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Course:</strong> {{ course.title }}</p>
+                            <p><strong>Due Date:</strong> 
+                                {% if assignment.due_date %}
+                                    {{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    No deadline
+                                {% endif %}
+                            </p>
+                            <p><strong>Max Points:</strong> {{ assignment.max_points }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Allowed File Types:</strong> {{ assignment.allowed_file_extensions }}</p>
+                            <p><strong>Max File Size:</strong> {{ assignment.max_file_size_mb }} MB</p>
+                            <p><strong>Plagiarism Check:</strong> {{ "Enabled" if assignment.plagiarism_check else "Disabled" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Edit Your Submission</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="submission_file"><strong>Replace File (Optional):</strong></label>
+                            <input type="file" class="form-control-file" id="submission_file" name="submission_file">
+                            <small class="form-text text-muted">
+                                Allowed file types: {{ assignment.allowed_file_extensions }}<br>
+                                Maximum file size: {{ assignment.max_file_size_mb }} MB
+                            </small>
+                            {% if submission.submission_file %}
+                                <div class="mt-2">
+                                    <p><strong>Current File:</strong> 
+                                        <a href="{{ url_for('static', filename='uploads/' + submission.submission_file) }}" target="_blank">
+                                            {{ submission.submission_file.split('/')[-1] }}
+                                        </a>
+                                    </p>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="remove_file" name="remove_file">
+                                        <label class="form-check-label" for="remove_file">
+                                            Remove current file
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="submission_text"><strong>Text Submission:</strong></label>
+                            <textarea class="form-control" id="submission_text" name="submission_text" rows="10">{{ submission.submission_text }}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="comments"><strong>Comments (Optional):</strong></label>
+                            <textarea class="form-control" id="comments" name="comments" rows="3" placeholder="Any additional comments for your instructor...">{{ submission.comments }}</textarea>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Note:</strong> Your submission was originally submitted on {{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}.
+                            {% if submission.is_late %}
+                                It was marked as late.
+                            {% endif %}
+                            Editing will not change this timestamp.
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Submission
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Initialize rich text editor for submission text if available
+        if (typeof ClassicEditor !== 'undefined') {
+            ClassicEditor
+                .create(document.querySelector('#submission_text'))
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Details - Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Quiz Details</h1>
+        <div>
+            <a href="{{ url_for('student.quizzes') }}" class="btn btn-sm btn-secondary shadow-sm">
+                <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Quizzes
+            </a>
+            {% if can_take %}
+                <a href="{{ url_for('student.take_quiz', quiz_id=quiz.id) }}" class="btn btn-sm btn-primary shadow-sm">
+                    <i class="fas fa-pencil-alt fa-sm text-white-50"></i> Take Quiz
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ quiz.title }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Course:</strong> {{ course.title }}</p>
+                            <p><strong>Time Limit:</strong> 
+                                {% if quiz.time_limit_minutes > 0 %}
+                                    {{ quiz.time_limit_minutes }} minutes
+                                {% else %}
+                                    No time limit
+                                {% endif %}
+                            </p>
+                            <p><strong>Passing Score:</strong> {{ quiz.passing_score }}%</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Questions:</strong> {{ quiz.questions|length }}</p>
+                            <p><strong>Attempts Allowed:</strong> 
+                                {% if quiz.attempts_allowed > 0 %}
+                                    {{ quiz.attempts_allowed }}
+                                {% else %}
+                                    Unlimited
+                                {% endif %}
+                            </p>
+                            <p><strong>Your Attempts:</strong> {{ attempts|length }}{% if quiz.attempts_allowed > 0 %}/{{ quiz.attempts_allowed }}{% endif %}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="font-weight-bold">Description:</h6>
+                            <div class="p-3 bg-light rounded">
+                                {{ quiz.description|safe }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="font-weight-bold">Instructions:</h6>
+                            <div class="p-3 bg-light rounded">
+                                <ul>
+                                    <li>This quiz contains {{ quiz.questions|length }} questions.</li>
+                                    {% if quiz.time_limit_minutes > 0 %}
+                                        <li>You have {{ quiz.time_limit_minutes }} minutes to complete this quiz.</li>
+                                    {% else %}
+                                        <li>There is no time limit for this quiz.</li>
+                                    {% endif %}
+                                    
+                                    {% if quiz.shuffle_questions %}
+                                        <li>Questions will be presented in random order.</li>
+                                    {% endif %}
+                                    
+                                    {% if quiz.show_answers %}
+                                        <li>You will be able to see correct answers after submission.</li>
+                                    {% else %}
+                                        <li>Correct answers will not be shown after submission.</li>
+                                    {% endif %}
+                                    
+                                    <li>A score of {{ quiz.passing_score }}% or higher is required to pass.</li>
+                                    
+                                    {% if quiz.attempts_allowed > 0 %}
+                                        <li>You are allowed {{ quiz.attempts_allowed }} attempts at this quiz.</li>
+                                    {% else %}
+                                        <li>You have unlimited attempts at this quiz.</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if attempts %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Your Attempts</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="attemptsTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Attempt #</th>
+                                    <th>Date</th>
+                                    <th>Duration</th>
+                                    <th>Score</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attempt in attempts %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ attempt.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if attempt.is_completed and attempt.end_time %}
+                                            {% set duration = (attempt.end_time - attempt.start_time).total_seconds() // 60 %}
+                                            {{ duration }} min
+                                        {% else %}
+                                            In progress
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if attempt.is_completed %}
+                                            {{ attempt.percentage|round(1) }}%
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not attempt.is_completed %}
+                                            <span class="badge badge-warning">In Progress</span>
+                                        {% elif attempt.is_passed %}
+                                            <span class="badge badge-success">Passed</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Failed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if attempt.is_completed %}
+                                            <a href="{{ url_for('student.quiz_result', attempt_id=attempt.id) }}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i> View Results
+                                            </a>
+                                        {% else %}
+                                            <a href="{{ url_for('student.take_quiz', quiz_id=quiz.id) }}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-pencil-alt"></i> Continue
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#attemptsTable').DataTable({
+            "order": [[0, "desc"]] // Sort by attempt number (descending)
+        });
+    });
+</script>
+{% endblock %} 

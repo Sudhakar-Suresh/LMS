@@ -748,6 +748,7 @@ class Message(db.Model):
     subject = db.Column(db.String(100), nullable=True)
     content = db.Column(db.Text, nullable=False)
     sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     read_at = db.Column(db.DateTime, nullable=True)
     is_read = db.Column(db.Boolean, default=False)
 

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Messages - Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            {% include 'student/sidebar.html' %}
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Messages</h1>
+                <a href="{{ url_for('student.send_message') }}" class="btn btn-sm btn-primary shadow-sm">
+                    <i class="fas fa-paper-plane fa-sm text-white-50"></i> Send New Message
+                </a>
+            </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Inbox</h6>
+                </div>
+                <div class="card-body">
+                    {% if received_messages %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="inboxTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>From</th>
+                                    <th>Subject</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for message in received_messages %}
+                                <tr {% if not message.is_read %}class="font-weight-bold"{% endif %}>
+                                    <td>
+                                        {% if message.is_read %}
+                                            <span class="badge badge-light">Read</span>
+                                        {% else %}
+                                            <span class="badge badge-primary">New</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if message.sender %}
+                                            {{ message.sender.first_name }} {{ message.sender.last_name }}
+                                            {% if message.sender.role %}
+                                                <small>({{ message.sender.role.name }})</small>
+                                            {% endif %}
+                                        {% else %}
+                                            System
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ message.subject }}</td>
+                                    <td>{{ message.sent_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('student.view_message', message_id=message.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a href="{{ url_for('student.reply_message', message_id=message.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-reply"></i> Reply
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="lead">No messages in your inbox.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Sent Messages</h6>
+                </div>
+                <div class="card-body">
+                    {% if sent_messages %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="sentTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>To</th>
+                                    <th>Subject</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for message in sent_messages %}
+                                <tr>
+                                    <td>
+                                        {% if message.recipient %}
+                                            {{ message.recipient.first_name }} {{ message.recipient.last_name }}
+                                            {% if message.recipient.role %}
+                                                <small>({{ message.recipient.role.name }})</small>
+                                            {% endif %}
+                                        {% else %}
+                                            Unknown
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ message.subject }}</td>
+                                    <td>{{ message.sent_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('student.view_message', message_id=message.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="lead">No sent messages.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#inboxTable').DataTable({
+            "order": [[3, "desc"]] // Sort by date (descending)
+        });
+        $('#sentTable').DataTable({
+            "order": [[2, "desc"]] // Sort by date (descending)
+        });
+    });
+</script>
+{% endblock %} 

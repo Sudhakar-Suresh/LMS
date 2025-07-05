@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Assignments - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Assignments</h1>
+        <a href="{{ url_for('instructor.create_assignment') }}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50"></i> Create New Assignment
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">All Assignments</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">Filter By:</div>
+                            <a class="dropdown-item" href="{{ url_for('instructor.assignments') }}">All Assignments</a>
+                            {% for course in courses %}
+                            <a class="dropdown-item" href="{{ url_for('instructor.assignments', course_id=course.id) }}">{{ course.title }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if assignments %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Course</th>
+                                    <th>Due Date</th>
+                                    <th>Submissions</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in assignments %}
+                                <tr>
+                                    <td>{{ assignment.title }}</td>
+                                    <td>{{ assignment.course.title }}</td>
+                                    <td>
+                                        {% if assignment.due_date %}
+                                            {{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            No deadline
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('instructor.assignment_submissions', assignment_id=assignment.id) }}" class="btn btn-sm btn-info">
+                                            View Submissions
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('instructor.edit_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <a href="{{ url_for('instructor.assignment_submissions', assignment_id=assignment.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-check"></i> Grade
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="lead">No assignments found.</p>
+                        <a href="{{ url_for('instructor.create_assignment') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Assignment
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#dataTable').DataTable({
+            "order": [[2, "asc"]] // Sort by due date (ascending)
+        });
+    });
+</script>
+{% endblock %} 

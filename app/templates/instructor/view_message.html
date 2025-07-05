@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}View Message - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('instructor.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('instructor.messages') }}">Messages</a></li>
+                <li class="breadcrumb-item active">View Message</li>
+            </ol>
+        </nav>
+        <h1 class="mb-4">Message Details</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ message.subject }}</h6>
+            </div>
+            <div class="card-body">
+                <div class="message-header mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>From:</strong> 
+                                {% if sender %}
+                                    {{ sender.first_name }} {{ sender.last_name }}
+                                {% else %}
+                                    System
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>To:</strong> 
+                                {% if recipient %}
+                                    {{ recipient.first_name }} {{ recipient.last_name }}
+                                {% else %}
+                                    Unknown Recipient
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <p><strong>Date:</strong> {{ message.sent_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                </div>
+                
+                <div class="message-content p-3 bg-light rounded">
+                    {{ message.content|nl2br }}
+                </div>
+                
+                <div class="message-actions mt-4 text-right">
+                    <a href="{{ url_for('instructor.messages') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Messages
+                    </a>
+                    <a href="{{ url_for('instructor.reply_message', message_id=message.id) }}" class="btn btn-primary">
+                        <i class="fas fa-reply"></i> Reply
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Message Info</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Status:</strong> 
+                    {% if message.is_read %}
+                        <span class="badge badge-success">Read</span>
+                    {% else %}
+                        <span class="badge badge-warning">Unread</span>
+                    {% endif %}
+                </p>
+                
+                {% if message.parent_message_id %}
+                <p><strong>Type:</strong> <span class="badge badge-info">Reply</span></p>
+                {% endif %}
+                
+                <hr>
+                
+                {% if sender and sender.id != current_user.id %}
+                <div class="sender-info">
+                    <h6>About Sender</h6>
+                    <p><strong>Name:</strong> {{ sender.first_name }} {{ sender.last_name }}</p>
+                    <p><strong>Email:</strong> {{ sender.email }}</p>
+                    <p><strong>Role:</strong> {{ sender.role.name|capitalize }}</p>
+                </div>
+                {% endif %}
+                
+                {% if recipient and recipient.id != current_user.id %}
+                <div class="recipient-info">
+                    <h6>About Recipient</h6>
+                    <p><strong>Name:</strong> {{ recipient.first_name }} {{ recipient.last_name }}</p>
+                    <p><strong>Email:</strong> {{ recipient.email }}</p>
+                    <p><strong>Role:</strong> {{ recipient.role.name|capitalize }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('instructor.messages') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-inbox"></i> All Messages
+                    </a>
+                    <a href="{{ url_for('instructor.send_message') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-paper-plane"></i> New Message
+                    </a>
+                    <a href="{{ url_for('instructor.dashboard') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

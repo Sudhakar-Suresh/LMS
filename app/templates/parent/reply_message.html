@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Reply to Message - Parent Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Reply to Message</h1>
+        <a href="{{ url_for('parent.messages') }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Messages
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Original Message</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>From:</strong> {{ message.sender.first_name }} {{ message.sender.last_name }}</p>
+                            <p><strong>To:</strong> {{ message.recipient.first_name }} {{ message.recipient.last_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Subject:</strong> {{ message.subject }}</p>
+                            <p><strong>Date:</strong> {{ message.sent_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded">
+                                {{ message.content|nl2br }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Your Reply</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="recipient"><strong>To:</strong></label>
+                            <input type="text" class="form-control" id="recipient" value="{{ recipient.first_name }} {{ recipient.last_name }}" readonly>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="subject"><strong>Subject:</strong></label>
+                            <input type="text" class="form-control" id="subject" name="subject" value="{{ reply_subject }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="content"><strong>Message:</strong></label>
+                            <textarea class="form-control" id="content" name="content" rows="8" required></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send Reply
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

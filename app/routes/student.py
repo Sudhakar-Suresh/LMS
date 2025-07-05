@@ -32,6 +32,7 @@ def dashboard():
 
     # Get course details
     courses = []
+    course_ids = []
     for enrollment in enrollments:
         course = Course.query.get(enrollment.course_id)
         if course:
@@ -41,6 +42,7 @@ def dashboard():
                 'instructor': instructor,
                 'enrollment_date': enrollment.enrollment_date
             })
+            course_ids.append(course.id)
 
     # Get upcoming classes (next 7 days)
     now = datetime.now()
@@ -58,9 +60,40 @@ def dashboard():
         LiveClass.start_time <= next_week
     ).order_by(LiveClass.start_time).limit(5).all()
 
+    # Get pending assignments count
+    if course_ids:
+        assignments = Assignment.query.filter(
+            Assignment.course_id.in_(course_ids),
+            Assignment.due_date > now
+        ).all()
+
+        pending_assignments = 0
+        for assignment in assignments:
+            # Check if student has submitted this assignment
+            submission = AssignmentSubmission.query.filter_by(
+                assignment_id=assignment.id,
+                student_id=current_user.id
+            ).first()
+            if not submission:
+                pending_assignments += 1
+    else:
+        pending_assignments = 0
+
+    # Get unread messages count
+    try:
+        unread_messages = Message.query.filter_by(
+            recipient_id=current_user.id,
+            is_read=False
+        ).count()
+    except Exception as e:
+        print(f"Error counting unread messages: {str(e)}")
+        unread_messages = 0
+
     return render_template('student/dashboard.html',
                            courses=courses,
-                           upcoming_classes=upcoming_classes)
+                           upcoming_classes=upcoming_classes,
+                           pending_assignments=pending_assignments,
+                           unread_messages=unread_messages)
 
 
 @student.route('/courses')
@@ -639,6 +672,7 @@ def assignment_details(assignment_id):
 @student_required
 def submit_assignment(assignment_id):
     assignment = Assignment.query.get_or_404(assignment_id)
+    now = datetime.now()
 
     # Check if student is enrolled in the course
     enrollment = Enrollment.query.filter_by(
@@ -662,6 +696,7 @@ def submit_assignment(assignment_id):
 
     if request.method == 'POST':
         submission_text = request.form.get('submission_text')
+        comments = request.form.get('comments')
 
         # Check if file was uploaded
         submission_file = None
@@ -696,7 +731,6 @@ def submit_assignment(assignment_id):
                 submission_file = os.path.join('assignments', filename)
 
         # Check if past due date
-        now = datetime.now()
         is_late = assignment.due_date and assignment.due_date < now
 
         # Create submission
@@ -705,6 +739,7 @@ def submit_assignment(assignment_id):
             student_id=current_user.id,
             submission_text=submission_text,
             submission_file=submission_file,
+            comments=comments,
             submitted_at=now,
             is_late=is_late
         )
@@ -717,7 +752,8 @@ def submit_assignment(assignment_id):
 
     return render_template('student/submit_assignment.html',
                            assignment=assignment,
-                           course=Course.query.get(assignment.course_id))
+                           course=Course.query.get(assignment.course_id),
+                           now=now)
 
 
 @student.route('/assignment/<int:assignment_id>/edit', methods=['GET', 'POST'])
@@ -753,6 +789,16 @@ def edit_assignment_submission(assignment_id):
 
     if request.method == 'POST':
         submission.submission_text = request.form.get('submission_text')
+        submission.comments = request.form.get('comments')
+        remove_file = 'remove_file' in request.form
+
+        # Remove file if requested
+        if remove_file and submission.submission_file:
+            old_path = os.path.join(
+                current_app.config['UPLOAD_FOLDER'], submission.submission_file)
+            if os.path.exists(old_path):
+                os.remove(old_path)
+            submission.submission_file = None
 
         # Check if file was uploaded
         if 'submission_file' in request.files:
@@ -806,7 +852,7 @@ def edit_assignment_submission(assignment_id):
         flash('Assignment submission updated successfully!', 'success')
         return redirect(url_for('student.assignment_details', assignment_id=assignment_id))
 
-    return render_template('student/edit_submission.html',
+    return render_template('student/edit_assignment_submission.html',
                            assignment=assignment,
                            submission=submission,
                            course=Course.query.get(assignment.course_id))
@@ -960,7 +1006,9 @@ def send_message():
             sender_id=current_user.id,
             recipient_id=recipient_id,
             subject=subject,
-            content=content
+            content=content,
+            is_read=False,
+            created_at=datetime.now()
         )
 
         db.session.add(message)
@@ -1333,3 +1381,53 @@ def download_document(file_path):
     except Exception as e:
         flash(f'Error downloading file: File not found.', 'danger')
         return redirect(url_for('student.dashboard'))
+
+
+@student.route('/reply-message/<int:message_id>', methods=['GET', 'POST'])
+@login_required
+@student_required
+def reply_message(message_id):
+    original_message = Message.query.get_or_404(message_id)
+
+    # Check if message belongs to current user
+    if original_message.recipient_id != current_user.id and original_message.sender_id != current_user.id:
+        flash('You do not have permission to reply to this message.', 'danger')
+        return redirect(url_for('student.messages'))
+
+    # Determine the recipient (the other party in the conversation)
+    if original_message.sender_id == current_user.id:
+        recipient_id = original_message.recipient_id
+    else:
+        recipient_id = original_message.sender_id
+
+    other_user = User.query.get(recipient_id)
+
+    if request.method == 'POST':
+        subject = request.form.get('subject')
+        content = request.form.get('content')
+
+        # Create reply message
+        reply = Message(
+            sender_id=current_user.id,
+            recipient_id=recipient_id,
+            subject=subject,
+            content=content,
+            is_read=False,
+            created_at=datetime.now()
+        )
+
+        db.session.add(reply)
+        db.session.commit()
+
+        flash('Reply sent successfully!', 'success')
+        return redirect(url_for('student.messages'))
+
+    # Prepare reply subject with "Re: " prefix if not already there
+    reply_subject = original_message.subject
+    if not reply_subject.startswith('Re: '):
+        reply_subject = f"Re: {reply_subject}"
+
+    return render_template('student/reply_message.html',
+                           message=original_message,
+                           reply_subject=reply_subject,
+                           recipient=other_user)

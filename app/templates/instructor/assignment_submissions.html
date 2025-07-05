@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Assignment Submissions - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Submissions: {{ assignment.title }}</h1>
+        <div>
+            <a href="{{ url_for('instructor.assignments') }}" class="btn btn-sm btn-secondary shadow-sm">
+                <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Assignments
+            </a>
+            <a href="{{ url_for('instructor.edit_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-warning shadow-sm">
+                <i class="fas fa-edit fa-sm text-white-50"></i> Edit Assignment
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Assignment Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Course:</strong> {{ assignment.course.title }}</p>
+                            <p><strong>Due Date:</strong> 
+                                {% if assignment.due_date %}
+                                    {{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    No deadline
+                                {% endif %}
+                            </p>
+                            <p><strong>Max Points:</strong> {{ assignment.max_points }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Created:</strong> {{ assignment.created_at.strftime('%Y-%m-%d') }}</p>
+                            <p><strong>Allowed File Types:</strong> {{ assignment.allowed_file_extensions }}</p>
+                            <p><strong>Max File Size:</strong> {{ assignment.max_file_size_mb }} MB</p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="font-weight-bold">Description:</h6>
+                            <div class="p-3 bg-light rounded">
+                                {{ assignment.description|safe }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Student Submissions</h6>
+                </div>
+                <div class="card-body">
+                    {% if submission_data %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Submitted At</th>
+                                    <th>Status</th>
+                                    <th>Score</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in submission_data %}
+                                <tr>
+                                    <td>{{ data.student.first_name }} {{ data.student.last_name }}</td>
+                                    <td>{{ data.submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if data.submission.graded_at %}
+                                            <span class="badge badge-success">Graded</span>
+                                        {% else %}
+                                            <span class="badge badge-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.submission.points is not none %}
+                                            {{ data.submission.points }}/{{ assignment.max_points }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('instructor.grade_submission', submission_id=data.submission.id) }}" class="btn btn-sm btn-primary">
+                                            {% if data.submission.graded_at %}
+                                                <i class="fas fa-edit"></i> Update Grade
+                                            {% else %}
+                                                <i class="fas fa-check"></i> Grade
+                                            {% endif %}
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="lead">No submissions yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#dataTable').DataTable({
+            "order": [[1, "desc"]] // Sort by submission date (descending)
+        });
+    });
+</script>
+{% endblock %} 

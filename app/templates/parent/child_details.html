@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.first_name }}'s Details - Parent Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('parent.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">{{ student.first_name }}'s Details</li>
+            </ol>
+        </nav>
+        <h1 class="mb-4">{{ student.first_name }}'s Details</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Student Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    {% if student.profile_image %}
+                        <img src="{{ url_for('static', filename='uploads/profile/' + student.profile_image) }}" alt="Profile Image" class="img-profile rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default-profile.png') }}" alt="Default Profile" class="img-profile rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% endif %}
+                </div>
+                <p><strong>Name:</strong> {{ student.first_name }} {{ student.last_name }}</p>
+                <p><strong>Username:</strong> {{ student.username }}</p>
+                <p><strong>Email:</strong> {{ student.email }}</p>
+                <p><strong>Role:</strong> Student</p>
+                <p><strong>Joined:</strong> {{ student.created_at.strftime('%B %d, %Y') }}</p>
+            </div>
+        </div>
+
+        <div class="card shadow mt-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Links</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('parent.child_assignments', student_id=student.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Assignments</h5>
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <p class="mb-1">View all assignments and submissions</p>
+                    </a>
+                    <a href="{{ url_for('parent.child_grades', student_id=student.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Grades</h5>
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <p class="mb-1">View academic performance and grades</p>
+                    </a>
+                    <a href="{{ url_for('parent.child_messages', student_id=student.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Messages</h5>
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <p class="mb-1">View communications with instructors</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Enrolled Courses</h6>
+            </div>
+            <div class="card-body">
+                {% if courses %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Instructor</th>
+                                    <th>Enrollment Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course_data in courses %}
+                                <tr>
+                                    <td>{{ course_data.course.title }}</td>
+                                    <td>{{ course_data.instructor.first_name }} {{ course_data.instructor.last_name }}</td>
+                                    <td>{{ course_data.enrollment_date.strftime('%B %d, %Y') }}</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-info">View Progress</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="lead">Your child is not enrolled in any courses yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h3 class="timeline-title">Assignment Submitted</h3>
+                            <p>Submitted "Final Project" for "Web Development"</p>
+                            <p class="timeline-date">2 days ago</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h3 class="timeline-title">Quiz Completed</h3>
+                            <p>Completed "Module 3 Quiz" for "Introduction to Programming"</p>
+                            <p class="timeline-date">1 week ago</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h3 class="timeline-title">Course Enrollment</h3>
+                            <p>Enrolled in "Data Science Fundamentals"</p>
+                            <p class="timeline-date">2 weeks ago</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

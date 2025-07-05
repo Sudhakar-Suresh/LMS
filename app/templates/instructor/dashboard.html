@@ -15,7 +15,7 @@
         <div class="card shadow">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Your Courses</h6>
-                <a href="#" class="btn btn-sm btn-primary">
+                <a href="{{ url_for('instructor.create_course') }}" class="btn btn-sm btn-primary">
                     <i class="fas fa-plus"></i> Add New Course
                 </a>
             </div>
@@ -39,7 +39,7 @@
                                         <a href="{{ url_for('instructor.course_details', course_id=stat.course.id) }}" class="btn btn-sm btn-info">
                                             <i class="fas fa-eye"></i> View
                                         </a>
-                                        <a href="#" class="btn btn-sm btn-warning">
+                                        <a href="{{ url_for('instructor.edit_course', course_id=stat.course.id) }}" class="btn btn-sm btn-warning">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
                                     </td>
@@ -51,7 +51,7 @@
                 {% else %}
                     <div class="text-center py-4">
                         <p class="lead">You don't have any courses yet.</p>
-                        <a href="#" class="btn btn-primary">
+                        <a href="{{ url_for('instructor.create_course') }}" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Create Your First Course
                         </a>
                     </div>
@@ -72,14 +72,15 @@
                     <a href="{{ url_for('instructor.courses') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-book me-2"></i> Manage Courses
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <i class="fas fa-clipboard-list me-2"></i> Create Assignment
+                    <a href="{{ url_for('instructor.assignments') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-clipboard-list me-2"></i> Assignments
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <i class="fas fa-file-alt me-2"></i> Grade Submissions
+                    <a href="{{ url_for('instructor.create_assignment') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-plus-circle me-2"></i> Create Assignment
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <i class="fas fa-comments me-2"></i> Message Students
+                    <a href="{{ url_for('instructor.messages') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-comments me-2"></i> Messages
+                        <span class="badge badge-pill badge-primary float-right">New</span>
                     </a>
                 </div>
             </div>
@@ -88,32 +89,35 @@
     
     <div class="col-md-6">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+                <a href="{{ url_for('instructor.messages') }}" class="btn btn-sm btn-info">
+                    <i class="fas fa-envelope"></i> View Messages
+                </a>
             </div>
             <div class="card-body">
                 <div class="list-group">
-                    <div class="list-group-item">
+                    <a href="{{ url_for('instructor.assignments') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">New student enrolled</h5>
-                            <small>3 days ago</small>
+                            <h5 class="mb-1">Assignments</h5>
+                            <small><i class="fas fa-arrow-right"></i></small>
                         </div>
-                        <p class="mb-1">John Smith enrolled in "Introduction to Programming"</p>
-                    </div>
-                    <div class="list-group-item">
+                        <p class="mb-1">Create, view, and grade student assignments</p>
+                    </a>
+                    <a href="{{ url_for('instructor.quizzes') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">Assignment submitted</h5>
-                            <small>1 week ago</small>
+                            <h5 class="mb-1">Quizzes</h5>
+                            <small><i class="fas fa-arrow-right"></i></small>
                         </div>
-                        <p class="mb-1">5 students submitted "Project Milestone 1"</p>
-                    </div>
-                    <div class="list-group-item">
+                        <p class="mb-1">Manage and grade quizzes for your courses</p>
+                    </a>
+                    <a href="{{ url_for('instructor.messages') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">Course created</h5>
-                            <small>2 weeks ago</small>
+                            <h5 class="mb-1">Messages</h5>
+                            <small><i class="fas fa-arrow-right"></i></small>
                         </div>
-                        <p class="mb-1">You created "Advanced Data Structures"</p>
-                    </div>
+                        <p class="mb-1">Communicate with your students</p>
+                    </a>
                 </div>
             </div>
         </div>

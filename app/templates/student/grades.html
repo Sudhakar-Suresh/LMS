@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Grades - Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            {% include 'student/sidebar.html' %}
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">My Grades</h1>
+            </div>
+
+    {% if course_grades %}
+        {% for course_grade in course_grades %}
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">{{ course_grade.course.title }}</h6>
+                <div>
+                    <span class="badge {% if course_grade.weighted_percentage >= 90 %}bg-success{% elif course_grade.weighted_percentage >= 80 %}bg-primary{% elif course_grade.weighted_percentage >= 70 %}bg-info{% elif course_grade.weighted_percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ course_grade.weighted_percentage|round(1) }}%
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card border-left-primary shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Overall Grade</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ course_grade.overall_percentage|round(1) }}%</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-left-success shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Weighted Grade</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ course_grade.weighted_percentage|round(1) }}%</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Category</th>
+                                <th>Weight</th>
+                                <th>Due Date</th>
+                                <th>Score</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for grade in course_grade.grades %}
+                            <tr>
+                                <td>{{ grade.item.name }}</td>
+                                <td>{{ grade.item.category }}</td>
+                                <td>{{ grade.item.weight }}%</td>
+                                <td>
+                                    {% if grade.item.due_date %}
+                                        {{ grade.item.due_date.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if grade.grade %}
+                                        {{ grade.grade.points }}/{{ grade.item.max_points }}
+                                    {% else %}
+                                        Not graded
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if grade.grade %}
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar {% if grade.percentage >= 90 %}bg-success{% elif grade.percentage >= 80 %}bg-primary{% elif grade.percentage >= 70 %}bg-info{% elif grade.percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                role="progressbar" 
+                                                style="width: {{ grade.percentage }}%;" 
+                                                aria-valuenow="{{ grade.percentage }}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="100">
+                                                {{ grade.percentage|round(1) }}%
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+                <div class="alert alert-info">
+                    <p>No grades available for your courses yet.</p>
+                </div>
+            {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('.table').DataTable({
+            "order": [[3, "asc"]] // Sort by due date
+        });
+    });
+</script>
+{% endblock %} 

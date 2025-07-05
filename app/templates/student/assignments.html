@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Assignments - Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            {% include 'student/sidebar.html' %}
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Assignments</h1>
+            </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Your Assignments</h6>
+                </div>
+                <div class="card-body">
+                    {% if assignment_data %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="assignmentsTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Course</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Grade</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in assignment_data %}
+                                <tr>
+                                    <td>{{ data.assignment.title }}</td>
+                                    <td>{{ data.course.title }}</td>
+                                    <td>
+                                        {% if data.assignment.due_date %}
+                                            {{ data.assignment.due_date.strftime('%Y-%m-%d %H:%M') }}
+                                            {% if data.status == "Overdue" %}
+                                                <span class="badge badge-danger">Overdue</span>
+                                            {% endif %}
+                                        {% else %}
+                                            No deadline
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.status == "Graded" %}
+                                            <span class="badge badge-success">Graded</span>
+                                        {% elif data.status == "Submitted" %}
+                                            <span class="badge badge-primary">Submitted</span>
+                                        {% elif data.status == "Overdue" %}
+                                            <span class="badge badge-danger">Overdue</span>
+                                        {% else %}
+                                            <span class="badge badge-warning">Not Submitted</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.submission and data.submission.points is not none %}
+                                            {{ data.submission.points }}/{{ data.assignment.max_points }}
+                                            ({{ (data.submission.points / data.assignment.max_points * 100)|round(1) }}%)
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('student.assignment_details', assignment_id=data.assignment.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        {% if not data.submission %}
+                                            <a href="{{ url_for('student.submit_assignment', assignment_id=data.assignment.id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-upload"></i> Submit
+                                            </a>
+                                        {% elif not data.submission.graded_at %}
+                                            <a href="{{ url_for('student.edit_assignment_submission', assignment_id=data.assignment.id) }}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="lead">No assignments available for your courses.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#assignmentsTable').DataTable({
+            "order": [[2, "asc"]] // Sort by due date (ascending)
+        });
+    });
+</script>
+{% endblock %} 

@@ -12,7 +12,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block styles %}{% endblock %}
 </head>
-<body>
+<body {% if current_user.is_authenticated %}
+      data-user-role="{{ current_user.role }}"
+      data-admin-dashboard-url="{{ url_for('admin.dashboard', _external=True) }}"
+      data-instructor-dashboard-url="{{ url_for('instructor.dashboard', _external=True) }}"
+      data-student-dashboard-url="{{ url_for('student.dashboard', _external=True) }}"
+      data-parent-dashboard-url="{{ url_for('parent.dashboard', _external=True) }}"
+      data-guest-dashboard-url="{{ url_for('guest.dashboard', _external=True) }}"
+      {% endif %}>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('main.index') }}">LMS</a>
@@ -30,24 +37,113 @@
                 </ul>
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
+                        <!-- Notification Icon -->
+                        {% if current_user.role == 'student' and unread_messages > 0 %}
+                        <li class="nav-item me-3">
+                            <a class="nav-link position-relative" href="{{ url_for('student.messages') }}">
+                                <i class="fas fa-bell"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ unread_messages }}
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- User Dropdown -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                {{ current_user.username }}
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                {% if current_user.role == 'admin' %}
-                                    <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
-                                {% elif current_user.role == 'instructor' %}
-                                    <li><a class="dropdown-item" href="{{ url_for('instructor.dashboard') }}">Dashboard</a></li>
-                                {% elif current_user.role == 'student' %}
-                                    <li><a class="dropdown-item" href="{{ url_for('student.dashboard') }}">Dashboard</a></li>
-                                {% elif current_user.role == 'parent' %}
-                                    <li><a class="dropdown-item" href="{{ url_for('parent.dashboard') }}">Dashboard</a></li>
-                                {% elif current_user.role == 'guest' %}
-                                    <li><a class="dropdown-item" href="{{ url_for('guest.dashboard') }}">Dashboard</a></li>
+                                {% if current_user.profile and current_user.profile.profile_picture %}
+                                <img src="{{ url_for('static', filename='uploads/profile/' + current_user.profile.profile_picture) }}" 
+                                     class="rounded-circle me-1" alt="Profile" style="width: 24px; height: 24px; object-fit: cover;">
+                                {% else %}
+                                <i class="fas fa-user-circle me-1"></i>
                                 {% endif %}
+                                {{ current_user.first_name }} {{ current_user.last_name }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <!-- Dashboard link for all user roles -->
+                                {% if current_user.role == 'admin' %}
+                                <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                </a></li>
+                                {% elif current_user.role == 'instructor' %}
+                                <li><a class="dropdown-item" href="{{ url_for('instructor.dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                </a></li>
+                                {% elif current_user.role == 'student' %}
+                                <li><a class="dropdown-item" href="{{ url_for('student.dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                </a></li>
+                                {% elif current_user.role == 'parent' %}
+                                <li><a class="dropdown-item" href="{{ url_for('parent.dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                </a></li>
+                                {% elif current_user.role == 'guest' %}
+                                <li><a class="dropdown-item" href="{{ url_for('guest.dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                </a></li>
+                                {% endif %}
+                                
+                                <!-- Role-specific menu items -->
+                                {% if current_user.role == 'instructor' %}
+                                    <li><a class="dropdown-item" href="{{ url_for('instructor.courses') }}">
+                                        <i class="fas fa-book me-2"></i> Courses
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('instructor.batches') }}">
+                                        <i class="fas fa-users me-2"></i> Batches
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('instructor.live_classes') }}">
+                                        <i class="fas fa-chalkboard-teacher me-2"></i> Live Classes
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('instructor.quizzes') }}">
+                                        <i class="fas fa-question-circle me-2"></i> Quizzes
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('instructor.assignments') }}">
+                                        <i class="fas fa-tasks me-2"></i> Assignments
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('instructor.notes') }}">
+                                        <i class="fas fa-sticky-note me-2"></i> Notes
+                                    </a></li>
+                                {% elif current_user.role == 'student' %}
+                                    <li><a class="dropdown-item" href="{{ url_for('student.courses') }}">
+                                        <i class="fas fa-book me-2"></i> Courses
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('student.classes') }}">
+                                        <i class="fas fa-chalkboard-teacher me-2"></i> Classes
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('student.quizzes') }}">
+                                        <i class="fas fa-question-circle me-2"></i> Quizzes
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('student.assignments') }}">
+                                        <i class="fas fa-tasks me-2"></i> Assignments
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('student.grades') }}">
+                                        <i class="fas fa-chart-bar me-2"></i> Grades
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('student.notes') }}">
+                                        <i class="fas fa-sticky-note me-2"></i> Notes
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('student.calendar') }}">
+                                        <i class="fas fa-calendar-alt me-2"></i> Calendar
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('student.messages') }}">
+                                        <i class="fas fa-envelope me-2"></i> Messages
+                                        {% if unread_messages > 0 %}
+                                        <span class="badge bg-danger">{{ unread_messages }}</span>
+                                        {% endif %}
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('student.forums') }}">
+                                        <i class="fas fa-comments me-2"></i> Forums
+                                    </a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">
+                                    <i class="fas fa-user-circle me-2"></i> My Profile
+                                </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                </a></li>
                             </ul>
                         </li>
                     {% else %}
@@ -59,106 +155,9 @@
                         </li>
                     {% endif %}
 
-                    <!-- Student Links -->
-                    {% if current_user.is_authenticated and current_user.role == 'STUDENT' %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/dashboard') %}active{% endif %}" href="{{ url_for('student.dashboard') }}">
-                                <i class="fas fa-tachometer-alt"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/courses') %}active{% endif %}" href="{{ url_for('student.courses') }}">
-                                <i class="fas fa-book"></i> Courses
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/classes') %}active{% endif %}" href="{{ url_for('student.classes') }}">
-                                <i class="fas fa-chalkboard-teacher"></i> Classes
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/quizzes') %}active{% endif %}" href="{{ url_for('student.quizzes') }}">
-                                <i class="fas fa-question-circle"></i> Quizzes
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/notes') %}active{% endif %}" href="{{ url_for('student.notes') }}">
-                                <i class="fas fa-sticky-note"></i> Notes
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/calendar') %}active{% endif %}" href="{{ url_for('student.calendar') }}">
-                                <i class="fas fa-calendar-alt"></i> Calendar
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/assignments') %}active{% endif %}" href="{{ url_for('student.assignments') }}">Assignments</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/student/grades') %}active{% endif %}" href="{{ url_for('student.grades') }}">Grades</a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="communicationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Communication
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="communicationDropdown">
-                                <li><a class="dropdown-item" href="{{ url_for('student.messages') }}">Messages</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('student.forums') }}">Discussion Forums</a></li>
-                            </ul>
-                        </li>
-                    {% endif %}
+                    <!-- No student links here - all moved to dropdown menu -->
 
-                    <!-- Instructor Links -->
-                    {% if current_user.is_authenticated and current_user.role == 'INSTRUCTOR' %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/instructor/dashboard') %}active{% endif %}" href="{{ url_for('instructor.dashboard') }}">
-                                <i class="fas fa-tachometer-alt"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/instructor/courses') %}active{% endif %}" href="{{ url_for('instructor.courses') }}">
-                                <i class="fas fa-book"></i> Courses
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/instructor/batches') %}active{% endif %}" href="{{ url_for('instructor.batches') }}">
-                                <i class="fas fa-users"></i> Batches
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/instructor/live-classes') %}active{% endif %}" href="{{ url_for('instructor.live_classes') }}">
-                                <i class="fas fa-chalkboard-teacher"></i> Live Classes
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/instructor/quizzes') %}active{% endif %}" href="{{ url_for('instructor.quizzes') }}">
-                                <i class="fas fa-question-circle"></i> Quizzes
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/instructor/notes') %}active{% endif %}" href="{{ url_for('instructor.notes') }}">
-                                <i class="fas fa-sticky-note"></i> Notes
-                            </a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="assessmentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Assessments
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="assessmentsDropdown">
-                                <li><a class="dropdown-item" href="{{ url_for('instructor.assignments') }}">Assignments</a></li>
-                            </ul>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="communicationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Communication
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="communicationDropdown">
-                                <li><a class="dropdown-item" href="#">Messages</a></li>
-                                <li><a class="dropdown-item" href="#">Announcements</a></li>
-                                <li><a class="dropdown-item" href="#">Discussion Forums</a></li>
-                            </ul>
-                        </li>
-                    {% endif %}
+                    <!-- No instructor links here - all moved to dropdown menu -->
                 </ul>
             </div>
         </div>

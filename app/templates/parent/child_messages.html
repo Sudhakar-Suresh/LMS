@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.first_name }}'s Messages - Parent Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('parent.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('parent.child_details', student_id=student.id) }}">{{ student.first_name }}'s Details</a></li>
+                <li class="breadcrumb-item active">Messages</li>
+            </ol>
+        </nav>
+        <h1 class="mb-4">{{ student.first_name }}'s Messages</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <ul class="nav nav-tabs card-header-tabs" id="message-tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="received-tab" data-toggle="tab" href="#received" role="tab" aria-controls="received" aria-selected="true">Received Messages</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="sent-tab" data-toggle="tab" href="#sent" role="tab" aria-controls="sent" aria-selected="false">Sent Messages</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="received" role="tabpanel" aria-labelledby="received-tab">
+                        {% if received_messages %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="receivedMessagesTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>From</th>
+                                        <th>Subject</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for message in received_messages %}
+                                    <tr class="{{ 'font-weight-bold' if not message.is_read else '' }}">
+                                        <td>
+                                            {% if message.sender %}
+                                                {{ message.sender.first_name }} {{ message.sender.last_name }}
+                                            {% else %}
+                                                System
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="#">{{ message.subject }}</a>
+                                        </td>
+                                        <td>{{ message.sent_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                                        <td>
+                                            {% if message.is_read %}
+                                                <span class="badge badge-success">Read</span>
+                                            {% else %}
+                                                <span class="badge badge-warning">Unread</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <p class="lead">No received messages found.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="tab-pane fade" id="sent" role="tabpanel" aria-labelledby="sent-tab">
+                        {% if sent_messages %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="sentMessagesTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>To</th>
+                                        <th>Subject</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for message in sent_messages %}
+                                    <tr>
+                                        <td>
+                                            {% if message.recipient %}
+                                                {{ message.recipient.first_name }} {{ message.recipient.last_name }}
+                                            {% else %}
+                                                Unknown Recipient
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="#">{{ message.subject }}</a>
+                                        </td>
+                                        <td>{{ message.sent_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <p class="lead">No sent messages found.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Links</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="list-group">
+                            <a href="{{ url_for('parent.dashboard') }}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">Dashboard</h5>
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <p class="mb-1">Return to parent dashboard</p>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="list-group">
+                            <a href="{{ url_for('parent.child_assignments', student_id=student.id) }}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">View Assignments</h5>
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <p class="mb-1">Check your child's assignments and submissions</p>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="list-group">
+                            <a href="{{ url_for('parent.child_grades', student_id=student.id) }}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">View Grades</h5>
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <p class="mb-1">Check your child's academic performance</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#receivedMessagesTable').DataTable({
+            "order": [[ 2, "desc" ]]
+        });
+        $('#sentMessagesTable').DataTable({
+            "order": [[ 2, "desc" ]]
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Assignment - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Edit Assignment</h1>
+        <div>
+            <a href="{{ url_for('instructor.assignments') }}" class="btn btn-sm btn-secondary shadow-sm">
+                <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Assignments
+            </a>
+            <a href="{{ url_for('instructor.assignment_submissions', assignment_id=assignment.id) }}" class="btn btn-sm btn-info shadow-sm">
+                <i class="fas fa-users fa-sm text-white-50"></i> View Submissions
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Assignment Details</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="title"><strong>Assignment Title:</strong></label>
+                                    <input type="text" class="form-control" id="title" name="title" value="{{ assignment.title }}" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="course_id"><strong>Course:</strong></label>
+                                    <select class="form-control" id="course_id" name="course_id" required>
+                                        <option value="">Select Course</option>
+                                        {% for course in courses %}
+                                        <option value="{{ course.id }}" {% if course.id == assignment.course_id %}selected{% endif %}>{{ course.title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="module_id"><strong>Module (Optional):</strong></label>
+                                    <select class="form-control" id="module_id" name="module_id">
+                                        <option value="">Select Module</option>
+                                        {% for module in modules %}
+                                        <option value="{{ module.id }}" {% if module.id == assignment.module_id %}selected{% endif %}>{{ module.title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="due_date"><strong>Due Date:</strong></label>
+                                    <input type="datetime-local" class="form-control" id="due_date" name="due_date" 
+                                        value="{{ assignment.due_date.strftime('%Y-%m-%dT%H:%M') if assignment.due_date else '' }}">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="max_points"><strong>Maximum Points:</strong></label>
+                                    <input type="number" class="form-control" id="max_points" name="max_points" min="1" value="{{ assignment.max_points }}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="allowed_extensions"><strong>Allowed File Extensions:</strong></label>
+                                    <input type="text" class="form-control" id="allowed_extensions" name="allowed_extensions" value="{{ assignment.allowed_file_extensions }}">
+                                    <small class="form-text text-muted">Comma-separated list of allowed file extensions</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="max_file_size"><strong>Maximum File Size (MB):</strong></label>
+                                    <input type="number" class="form-control" id="max_file_size" name="max_file_size" min="1" value="{{ assignment.max_file_size_mb }}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="plagiarism_check" name="plagiarism_check" {% if assignment.plagiarism_check %}checked{% endif %}>
+                                        <label class="custom-control-label" for="plagiarism_check">Enable Plagiarism Check</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description"><strong>Assignment Description:</strong></label>
+                            <textarea class="form-control" id="description" name="description" rows="8">{{ assignment.description }}</textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Assignment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Initialize rich text editor for description
+        if (typeof ClassicEditor !== 'undefined') {
+            ClassicEditor
+                .create(document.querySelector('#description'))
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+        
+        // Load modules when course is selected
+        $('#course_id').change(function() {
+            const courseId = $(this).val();
+            if (courseId) {
+                $.ajax({
+                    url: `/api/course/${courseId}/modules`,
+                    type: 'GET',
+                    success: function(data) {
+                        let options = '<option value="">Select Module</option>';
+                        data.modules.forEach(function(module) {
+                            options += `<option value="${module.id}">${module.title}</option>`;
+                        });
+                        $('#module_id').html(options);
+                    },
+                    error: function(error) {
+                        console.error('Error loading modules:', error);
+                    }
+                });
+            } else {
+                $('#module_id').html('<option value="">Select Module</option>');
+            }
+        });
+    });
+</script>
+{% endblock %} 

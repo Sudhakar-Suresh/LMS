@@ -9,7 +9,7 @@ from app import db
 from app.models.user import User, UserRole, Course, CourseCategory, Module, Lesson, Topic, SubContent, CourseTag
 from app.models.user import Batch, BatchEnrollment, LiveClass, Attendance, Enrollment
 from app.models.user import Quiz, Question, QuestionOption, QuestionAnswer, QuizAttempt, QuizResponse
-from app.models.user import Assignment, AssignmentSubmission, Notes
+from app.models.user import Assignment, AssignmentSubmission, GradeItem, StudentGrade, Notes, Message
 from app.utils.uploads import allowed_file, save_file, save_course_thumbnail, normalize_path
 
 instructor = Blueprint('instructor', __name__, url_prefix='/instructor')
@@ -1616,6 +1616,7 @@ def create_assignment():
             description=f"Assignment: {title}",
             item_type='assignment',
             max_points=max_points,
+            weight=1.0,  # Default weight
             assignment_id=new_assignment.id,
             due_date=due_date
         )
@@ -1624,7 +1625,7 @@ def create_assignment():
         db.session.commit()
 
         flash('Assignment created successfully!', 'success')
-        return redirect(url_for('instructor.assignments'))
+        return redirect(url_for('instructor.assignment_submissions', assignment_id=new_assignment.id))
 
     return render_template('instructor/create_assignment.html', courses=instructor_courses)
 
@@ -1678,9 +1679,23 @@ def edit_assignment(assignment_id):
             grade_item.max_points = assignment.max_points
             grade_item.due_date = assignment.due_date
             db.session.commit()
+        else:
+            # Create grade item if it doesn't exist
+            grade_item = GradeItem(
+                course_id=assignment.course_id,
+                title=assignment.title,
+                description=f"Assignment: {assignment.title}",
+                item_type='assignment',
+                max_points=assignment.max_points,
+                weight=1.0,  # Default weight
+                assignment_id=assignment_id,
+                due_date=assignment.due_date
+            )
+            db.session.add(grade_item)
+            db.session.commit()
 
         flash('Assignment updated successfully!', 'success')
-        return redirect(url_for('instructor.assignments'))
+        return redirect(url_for('instructor.assignment_submissions', assignment_id=assignment.id))
 
     # Get modules for the selected course
     modules = Module.query.filter_by(course_id=assignment.course_id).all()
@@ -1739,40 +1754,67 @@ def grade_submission(submission_id):
         points = request.form.get('points')
         feedback = request.form.get('feedback')
 
+        # Update submission
         submission.points = points
         submission.feedback = feedback
         submission.graded_by_id = current_user.id
         submission.graded_at = datetime.now()
+        db.session.commit()
+
+        # Update or create corresponding grade item
+        grade_item = GradeItem.query.filter_by(
+            assignment_id=assignment.id).first()
+
+        if not grade_item:
+            # Create grade item if it doesn't exist
+            grade_item = GradeItem(
+                course_id=assignment.course_id,
+                title=assignment.title,
+                description=f"Assignment: {assignment.title}",
+                item_type='assignment',
+                max_points=assignment.max_points,
+                weight=1.0,  # Default weight
+                assignment_id=assignment.id,
+                due_date=assignment.due_date
+            )
+            db.session.add(grade_item)
+            db.session.commit()
+
+        # Update or create student grade
+        student_grade = StudentGrade.query.filter_by(
+            grade_item_id=grade_item.id,
+            student_id=student.id
+        ).first()
+
+        if student_grade:
+            student_grade.points = points
+            student_grade.feedback = feedback
+            student_grade.graded_by_id = current_user.id
+            student_grade.graded_at = datetime.now()
+        else:
+            student_grade = StudentGrade(
+                grade_item_id=grade_item.id,
+                student_id=student.id,
+                points=points,
+                feedback=feedback,
+                graded_by_id=current_user.id,
+                graded_at=datetime.now()
+            )
+            db.session.add(student_grade)
 
         db.session.commit()
 
-        # Update corresponding grade item
-        grade_item = GradeItem.query.filter_by(
-            assignment_id=assignment.id).first()
-        if grade_item:
-            # Check if student grade exists
-            student_grade = StudentGrade.query.filter_by(
-                grade_item_id=grade_item.id,
-                student_id=student.id
-            ).first()
-
-            if student_grade:
-                student_grade.points = points
-                student_grade.feedback = feedback
-                student_grade.graded_by_id = current_user.id
-                student_grade.graded_at = datetime.now()
-            else:
-                student_grade = StudentGrade(
-                    grade_item_id=grade_item.id,
-                    student_id=student.id,
-                    points=points,
-                    feedback=feedback,
-                    graded_by_id=current_user.id,
-                    graded_at=datetime.now()
-                )
-                db.session.add(student_grade)
-
-            db.session.commit()
+        # Send notification to student
+        message = Message(
+            sender_id=current_user.id,
+            recipient_id=student.id,
+            subject=f"Assignment Graded: {assignment.title}",
+            content=f"Your submission for '{assignment.title}' has been graded.\n\nGrade: {points}/{assignment.max_points}\n\nFeedback: {feedback}",
+            is_read=False,
+            created_at=datetime.now()
+        )
+        db.session.add(message)
+        db.session.commit()
 
         flash('Submission graded successfully!', 'success')
         return redirect(url_for('instructor.assignment_submissions', assignment_id=assignment.id))
@@ -2307,3 +2349,157 @@ def delete_subcontent_item(subcontent_id):
 
     flash('Subcontent deleted successfully!', 'success')
     return redirect(url_for('instructor.edit_topic', topic_id=topic.id))
+
+
+# Message Routes
+@instructor.route('/messages')
+@login_required
+@instructor_required
+def messages():
+    # Get received messages
+    received_messages = Message.query.filter_by(
+        recipient_id=current_user.id
+    ).order_by(Message.sent_at.desc()).all()
+
+    # Get sent messages
+    sent_messages = Message.query.filter_by(
+        sender_id=current_user.id
+    ).order_by(Message.sent_at.desc()).all()
+
+    return render_template('instructor/messages.html',
+                           received_messages=received_messages,
+                           sent_messages=sent_messages)
+
+
+@instructor.route('/send-message', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def send_message():
+    if request.method == 'POST':
+        recipient_id = request.form.get('recipient_id')
+        subject = request.form.get('subject')
+        content = request.form.get('content')
+
+        # Validate recipient
+        recipient = User.query.get(recipient_id)
+        if not recipient:
+            flash('Invalid recipient.', 'danger')
+            return redirect(url_for('instructor.send_message'))
+
+        # Create message
+        message = Message(
+            sender_id=current_user.id,
+            recipient_id=recipient_id,
+            subject=subject,
+            content=content
+        )
+
+        db.session.add(message)
+        db.session.commit()
+
+        flash('Message sent successfully!', 'success')
+        return redirect(url_for('instructor.messages'))
+
+    # Get potential recipients (students enrolled in instructor's courses)
+    instructor_courses = Course.query.filter_by(
+        instructor_id=current_user.id).all()
+    course_ids = [course.id for course in instructor_courses]
+
+    enrollments = Enrollment.query.filter(
+        Enrollment.course_id.in_(course_ids)).all()
+    students = []
+    for enrollment in enrollments:
+        student = User.query.get(enrollment.student_id)
+        if student and student not in students:
+            students.append(student)
+
+    return render_template('instructor/send_message.html', students=students)
+
+
+@instructor.route('/message/<int:message_id>')
+@login_required
+@instructor_required
+def view_message(message_id):
+    message = Message.query.get_or_404(message_id)
+
+    # Check if message belongs to current user
+    if message.recipient_id != current_user.id and message.sender_id != current_user.id:
+        flash('You do not have permission to view this message.', 'danger')
+        return redirect(url_for('instructor.messages'))
+
+    # Mark as read if current user is recipient
+    if message.recipient_id == current_user.id and not message.is_read:
+        message.is_read = True
+        db.session.commit()
+
+    # Get sender and recipient info
+    sender = User.query.get(message.sender_id)
+    recipient = User.query.get(message.recipient_id)
+
+    return render_template('instructor/view_message.html',
+                           message=message,
+                           sender=sender,
+                           recipient=recipient)
+
+
+@instructor.route('/reply-message/<int:message_id>', methods=['GET', 'POST'])
+@login_required
+@instructor_required
+def reply_message(message_id):
+    original_message = Message.query.get_or_404(message_id)
+
+    # Check if message belongs to current user
+    if original_message.recipient_id != current_user.id and original_message.sender_id != current_user.id:
+        flash('You do not have permission to reply to this message.', 'danger')
+        return redirect(url_for('instructor.messages'))
+
+    if request.method == 'POST':
+        content = request.form.get('content')
+
+        # Determine recipient (the other party in the conversation)
+        recipient_id = original_message.sender_id if original_message.recipient_id == current_user.id else original_message.recipient_id
+
+        # Create reply message
+        subject = f"Re: {original_message.subject}"
+        reply = Message(
+            sender_id=current_user.id,
+            recipient_id=recipient_id,
+            subject=subject,
+            content=content,
+            parent_message_id=message_id
+        )
+
+        db.session.add(reply)
+        db.session.commit()
+
+        flash('Reply sent successfully!', 'success')
+        return redirect(url_for('instructor.messages'))
+
+    # Get the other party's info
+    if original_message.sender_id == current_user.id:
+        other_user = User.query.get(original_message.recipient_id)
+    else:
+        other_user = User.query.get(original_message.sender_id)
+
+    return render_template('instructor/reply_message.html',
+                           original_message=original_message,
+                           other_user=other_user)
+
+
+@instructor.route('/api/course/<int:course_id>/modules', methods=['GET'])
+@login_required
+@instructor_required
+def get_course_modules(course_id):
+    """API endpoint to get modules for a specific course"""
+    course = Course.query.get_or_404(course_id)
+
+    # Check if instructor owns this course
+    if course.instructor_id != current_user.id:
+        return jsonify({'error': 'You do not have permission to access this course'}), 403
+
+    modules = Module.query.filter_by(
+        course_id=course_id).order_by(Module.order).all()
+    modules_data = [{'id': module.id, 'title': module.title}
+                    for module in modules]
+
+    return jsonify({'modules': modules_data})

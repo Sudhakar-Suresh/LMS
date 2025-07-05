@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}View Message - Parent Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">View Message</h1>
+        <div>
+            <a href="{{ url_for('parent.messages') }}" class="btn btn-sm btn-secondary shadow-sm">
+                <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Messages
+            </a>
+            <a href="{{ url_for('parent.reply_message', message_id=message.id) }}" class="btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-reply fa-sm text-white-50"></i> Reply
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ message.subject }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>From:</strong> 
+                                {% if sender %}
+                                    {{ sender.first_name }} {{ sender.last_name }}
+                                    {% if sender.role %}
+                                        ({{ sender.role.name }})
+                                    {% endif %}
+                                {% else %}
+                                    System
+                                {% endif %}
+                            </p>
+                            <p><strong>To:</strong> 
+                                {% if recipient %}
+                                    {{ recipient.first_name }} {{ recipient.last_name }}
+                                    {% if recipient.role %}
+                                        ({{ recipient.role.name }})
+                                    {% endif %}
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <p><strong>Date:</strong> {{ message.sent_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p>
+                                <strong>Status:</strong> 
+                                {% if message.is_read %}
+                                    <span class="badge badge-light">Read</span>
+                                    {% if message.read_at %}
+                                        ({{ message.read_at.strftime('%Y-%m-%d %H:%M') }})
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-primary">Unread</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="message-content p-3">
+                        {{ message.content|nl2br }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

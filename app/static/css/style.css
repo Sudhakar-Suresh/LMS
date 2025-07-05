@@ -126,4 +126,49 @@ body {
 .badge {
     font-weight: 600;
     padding: 0.35em 0.65em;
-} 
+}
+
+/* Sidebar styles */
+.sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding-top: 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-right: 1px solid #dee2e6;
+}
+
+.sidebar-nav .nav-link {
+    color: #333;
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+}
+
+.sidebar-nav .nav-link:hover {
+    background-color: #f8f9fa;
+}
+
+.sidebar-nav .nav-link.active {
+    color: #4e73df;
+    background-color: rgba(78, 115, 223, 0.1);
+    border-left: 3px solid #4e73df;
+}
+
+.sidebar-nav .nav-link i {
+    margin-right: 0.5rem;
+    color: #6c757d;
+}
+
+.sidebar-nav .nav-link.active i {
+    color: #4e73df;
+}
+
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        margin-bottom: 20px;
+    }
+}

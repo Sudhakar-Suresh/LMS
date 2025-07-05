@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.first_name }}'s Grades - Parent Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('parent.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('parent.child_details', student_id=student.id) }}">{{ student.first_name }}'s Details</a></li>
+                <li class="breadcrumb-item active">Grades</li>
+            </ol>
+        </nav>
+        <h1 class="mb-4">{{ student.first_name }}'s Grades</h1>
+    </div>
+</div>
+
+{% if course_grades %}
+    {% for course_grade in course_grades %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ course_grade.course.title }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Overall Grade</h5>
+                                    <div class="text-center">
+                                        <div class="h1 mb-0 font-weight-bold text-gray-800">{{ "%.1f"|format(course_grade.overall_percentage) }}%</div>
+                                        <div class="mt-2">
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-{{ 'success' if course_grade.overall_percentage >= 70 else ('warning' if course_grade.overall_percentage >= 60 else 'danger') }}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ course_grade.overall_percentage }}%;" 
+                                                     aria-valuenow="{{ course_grade.overall_percentage }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">{{ "%.1f"|format(course_grade.overall_percentage) }}%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Weighted Grade</h5>
+                                    <div class="text-center">
+                                        <div class="h1 mb-0 font-weight-bold text-gray-800">{{ "%.1f"|format(course_grade.weighted_percentage) }}%</div>
+                                        <div class="mt-2">
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-{{ 'success' if course_grade.weighted_percentage >= 70 else ('warning' if course_grade.weighted_percentage >= 60 else 'danger') }}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ course_grade.weighted_percentage }}%;" 
+                                                     aria-valuenow="{{ course_grade.weighted_percentage }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">{{ "%.1f"|format(course_grade.weighted_percentage) }}%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Type</th>
+                                    <th>Due Date</th>
+                                    <th>Points</th>
+                                    <th>Weight</th>
+                                    <th>Grade</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for grade in course_grade.grades %}
+                                <tr>
+                                    <td>{{ grade.item.title }}</td>
+                                    <td>{{ grade.item.item_type|capitalize }}</td>
+                                    <td>
+                                        {% if grade.item.due_date %}
+                                            {{ grade.item.due_date.strftime('%b %d, %Y') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ grade.item.max_points }}</td>
+                                    <td>{{ grade.item.weight }}</td>
+                                    <td>
+                                        {% if grade.grade %}
+                                            {{ grade.grade.points }} / {{ grade.item.max_points }}
+                                        {% else %}
+                                            Not graded
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if grade.grade %}
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-{{ 'success' if grade.percentage >= 70 else ('warning' if grade.percentage >= 60 else 'danger') }}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ grade.percentage }}%;" 
+                                                     aria-valuenow="{{ grade.percentage }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">{{ "%.1f"|format(grade.percentage) }}%</div>
+                                            </div>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <p class="lead">No grade information available for this student.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Links</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="list-group">
+                            <a href="{{ url_for('parent.child_assignments', student_id=student.id) }}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">View Assignments</h5>
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <p class="mb-1">Check your child's assignments and submissions</p>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="list-group">
+                            <a href="{{ url_for('parent.child_messages', student_id=student.id) }}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">View Messages</h5>
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                                <p class="mb-1">Check communications with instructors</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

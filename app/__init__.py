@@ -62,6 +62,33 @@ def create_app(config_class=Config):
         def inject_now():
             return {'now': datetime.utcnow()}
 
+            # Add unread messages count for student users
+        @app.context_processor
+        def inject_unread_messages():
+            from flask_login import current_user
+            from app.models.user import Message
+            from sqlalchemy import inspect
+
+            unread_messages = 0
+            if current_user.is_authenticated:
+                try:
+                    # Check if current_user has role attribute and it's a student
+                    if hasattr(current_user, 'role') and hasattr(current_user.role, 'name') and current_user.role.name == 'student':
+                        # Check if created_at column exists in Message table
+                        inspector = inspect(db.engine)
+                        columns = [column['name']
+                                   for column in inspector.get_columns('messages')]
+
+                        # Only filter by created_at if the column exists
+                        unread_messages = Message.query.filter_by(
+                            recipient_id=current_user.id,
+                            is_read=False
+                        ).count()
+                except Exception as e:
+                    print(f"Error getting unread messages: {str(e)}")
+                    pass
+            return {'unread_messages': unread_messages}
+
         # Add tojson filter
         @app.template_filter('tojson')
         def tojson_filter(obj):

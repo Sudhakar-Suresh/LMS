@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Grade Submission - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Grade Submission</h1>
+        <a href="{{ url_for('instructor.assignment_submissions', assignment_id=assignment.id) }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Submissions
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Assignment: {{ assignment.title }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Student:</strong> {{ student.first_name }} {{ student.last_name }}</p>
+                            <p><strong>Course:</strong> {{ assignment.course.title }}</p>
+                            <p><strong>Due Date:</strong> 
+                                {% if assignment.due_date %}
+                                    {{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    No deadline
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Submitted:</strong> {{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p><strong>Status:</strong> 
+                                {% if submission.graded_at %}
+                                    <span class="badge badge-success">Graded</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Pending</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Max Points:</strong> {{ assignment.max_points }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Student Submission</h6>
+                </div>
+                <div class="card-body">
+                    {% if submission.file_path %}
+                    <div class="mb-4">
+                        <h6 class="font-weight-bold">Submitted File:</h6>
+                        {% set file_ext = submission.file_path.split('.')[-1].lower() %}
+                        
+                        {% if file_ext in ['pdf'] %}
+                            <div class="embed-responsive embed-responsive-16by9 mb-3">
+                                <iframe class="embed-responsive-item" src="{{ url_for('static', filename='uploads/' + submission.file_path) }}"></iframe>
+                            </div>
+                        {% elif file_ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                            <img src="{{ url_for('static', filename='uploads/' + submission.file_path) }}" class="img-fluid mb-3" alt="Submission Image">
+                        {% endif %}
+                        
+                        <a href="{{ url_for('static', filename='uploads/' + submission.file_path) }}" class="btn btn-info" target="_blank">
+                            <i class="fas fa-download"></i> Download File
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if submission.text_submission %}
+                    <div class="mb-4">
+                        <h6 class="font-weight-bold">Text Submission:</h6>
+                        <div class="p-3 bg-light rounded">
+                            {{ submission.text_submission|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if submission.comments %}
+                    <div class="mb-4">
+                        <h6 class="font-weight-bold">Student Comments:</h6>
+                        <div class="p-3 bg-light rounded">
+                            {{ submission.comments|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Grade Submission</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="points"><strong>Points (max {{ assignment.max_points }}):</strong></label>
+                            <input type="number" class="form-control" id="points" name="points" min="0" max="{{ assignment.max_points }}" value="{{ submission.points if submission.points is not none else '' }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="feedback"><strong>Feedback:</strong></label>
+                            <textarea class="form-control" id="feedback" name="feedback" rows="8">{{ submission.feedback if submission.feedback else '' }}</textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-save"></i> Save Grade
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

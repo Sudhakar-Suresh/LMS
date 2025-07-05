@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Send Message - Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Send Message</h1>
+        <a href="{{ url_for('student.messages') }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Messages
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">New Message</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="recipient_id"><strong>Recipient:</strong></label>
+                            <select class="form-control" id="recipient_id" name="recipient_id" required>
+                                <option value="">Select Recipient</option>
+                                <optgroup label="Instructors">
+                                    {% for instructor in instructors %}
+                                    <option value="{{ instructor.id }}">{{ instructor.first_name }} {{ instructor.last_name }} (Instructor)</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="subject"><strong>Subject:</strong></label>
+                            <input type="text" class="form-control" id="subject" name="subject" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="content"><strong>Message:</strong></label>
+                            <textarea class="form-control" id="content" name="content" rows="8" required></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

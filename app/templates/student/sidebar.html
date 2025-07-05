@@ -1,0 +1,63 @@
+<!-- Student Sidebar Navigation -->
+<div class="sidebar-nav">
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link {% if request.path == url_for('student.dashboard') %}active{% endif %}" href="{{ url_for('student.dashboard') }}">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/courses') %}active{% endif %}" href="{{ url_for('student.courses') }}">
+                <i class="fas fa-book"></i> Courses
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/classes') %}active{% endif %}" href="{{ url_for('student.classes') }}">
+                <i class="fas fa-chalkboard-teacher"></i> Classes
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/quizzes') %}active{% endif %}" href="{{ url_for('student.quizzes') }}">
+                <i class="fas fa-question-circle"></i> Quizzes
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/assignments') %}active{% endif %}" href="{{ url_for('student.assignments') }}">
+                <i class="fas fa-tasks"></i> Assignments
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/grades') %}active{% endif %}" href="{{ url_for('student.grades') }}">
+                <i class="fas fa-chart-bar"></i> Grades
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/notes') %}active{% endif %}" href="{{ url_for('student.notes') }}">
+                <i class="fas fa-sticky-note"></i> Notes
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/calendar') %}active{% endif %}" href="{{ url_for('student.calendar') }}">
+                <i class="fas fa-calendar-alt"></i> Calendar
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/messages') %}active{% endif %}" href="{{ url_for('student.messages') }}">
+                <i class="fas fa-envelope"></i> Messages
+                {% if unread_messages > 0 %}
+                <span class="badge bg-danger">{{ unread_messages }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/forums') %}active{% endif %}" href="{{ url_for('student.forums') }}">
+                <i class="fas fa-comments"></i> Forums
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.path.startswith('/student/certificates') %}active{% endif %}" href="{{ url_for('student.certificates') }}">
+                <i class="fas fa-certificate"></i> Certificates
+            </a>
+        </li>
+    </ul>
+</div> 

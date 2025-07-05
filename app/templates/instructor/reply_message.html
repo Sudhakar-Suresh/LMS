@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Reply to Message - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('instructor.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('instructor.messages') }}">Messages</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('instructor.view_message', message_id=original_message.id) }}">View Message</a></li>
+                <li class="breadcrumb-item active">Reply</li>
+            </ol>
+        </nav>
+        <h1 class="mb-4">Reply to Message</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Original Message</h6>
+            </div>
+            <div class="card-body">
+                <div class="message-header mb-3">
+                    <p><strong>Subject:</strong> {{ original_message.subject }}</p>
+                    <p><strong>From:</strong> 
+                        {% if original_message.sender %}
+                            {{ original_message.sender.first_name }} {{ original_message.sender.last_name }}
+                        {% else %}
+                            System
+                        {% endif %}
+                    </p>
+                    <p><strong>Date:</strong> {{ original_message.sent_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                </div>
+                
+                <div class="message-content p-3 bg-light rounded">
+                    {{ original_message.content|nl2br }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Your Reply</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('instructor.reply_message', message_id=original_message.id) }}">
+                    <div class="form-group">
+                        <label for="recipient">To</label>
+                        <input type="text" class="form-control" id="recipient" value="{{ other_user.first_name }} {{ other_user.last_name }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <input type="text" class="form-control" id="subject" value="Re: {{ original_message.subject }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="content">Message</label>
+                        <textarea class="form-control" id="content" name="content" rows="10" required></textarea>
+                    </div>
+                    <div class="form-group text-right">
+                        <a href="{{ url_for('instructor.view_message', message_id=original_message.id) }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send Reply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Recipient Info</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    {% if other_user.profile_image %}
+                        <img src="{{ url_for('static', filename='uploads/profile/' + other_user.profile_image) }}" alt="Profile Image" class="img-profile rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default-profile.png') }}" alt="Default Profile" class="img-profile rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                    {% endif %}
+                </div>
+                <p><strong>Name:</strong> {{ other_user.first_name }} {{ other_user.last_name }}</p>
+                <p><strong>Email:</strong> {{ other_user.email }}</p>
+                <p><strong>Role:</strong> {{ other_user.role.name|capitalize }}</p>
+                {% if other_user.role == 'STUDENT' %}
+                    <p><strong>Student ID:</strong> {{ other_user.id }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Tips</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success"></i> Address the specific points from the original message.
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success"></i> Be clear and concise in your response.
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success"></i> Provide actionable next steps if applicable.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

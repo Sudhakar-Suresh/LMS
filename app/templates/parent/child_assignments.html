@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.first_name }}'s Assignments - Parent Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('parent.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('parent.child_details', student_id=student.id) }}">{{ student.first_name }}'s Details</a></li>
+                <li class="breadcrumb-item active">Assignments</li>
+            </ol>
+        </nav>
+        <h1 class="mb-4">{{ student.first_name }}'s Assignments</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">All Assignments</h6>
+            </div>
+            <div class="card-body">
+                {% if assignment_data %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="assignmentsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Course</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Grade</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in assignment_data %}
+                            <tr>
+                                <td>{{ data.assignment.title }}</td>
+                                <td>{{ data.course.title }}</td>
+                                <td>
+                                    {% if data.assignment.due_date %}
+                                        {{ data.assignment.due_date.strftime('%b %d, %Y %I:%M %p') }}
+                                    {% else %}
+                                        No due date
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if data.status == "Graded" %}
+                                        <span class="badge badge-success">{{ data.status }}</span>
+                                    {% elif data.status == "Submitted" %}
+                                        <span class="badge badge-info">{{ data.status }}</span>
+                                    {% elif data.status == "Overdue" %}
+                                        <span class="badge badge-danger">{{ data.status }}</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">{{ data.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if data.submission and data.submission.points is not none %}
+                                        {{ data.submission.points }} / {{ data.assignment.max_points }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('parent.child_assignment_details', student_id=student.id, assignment_id=data.assignment.id) }}" class="btn btn-sm btn-primary">View Details</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="lead">No assignments found for this student.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Assignment Status</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4">
+                    <canvas id="assignmentStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Links</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('parent.child_grades', student_id=student.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">View Grades</h5>
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <p class="mb-1">Check your child's academic performance</p>
+                    </a>
+                    <a href="{{ url_for('parent.child_messages', student_id=student.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">View Messages</h5>
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <p class="mb-1">Check communications with instructors</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#assignmentsTable').DataTable({
+            "order": [[ 2, "asc" ]]
+        });
+        
+        // Assignment Status Chart
+        var ctx = document.getElementById("assignmentStatusChart");
+        var statusCounts = {
+            "Graded": 0,
+            "Submitted": 0,
+            "Not Submitted": 0,
+            "Overdue": 0
+        };
+        
+        {% for data in assignment_data %}
+            statusCounts["{{ data.status }}"]++;
+        {% endfor %}
+        
+        var myPieChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(statusCounts),
+                datasets: [{
+                    data: Object.values(statusCounts),
+                    backgroundColor: ['#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+                    hoverBackgroundColor: ['#17a673', '#2c9faf', '#dda20a', '#be2617'],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                tooltips: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyFontColor: "#858796",
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    xPadding: 15,
+                    yPadding: 15,
+                    displayColors: false,
+                    caretPadding: 10,
+                },
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                },
+                cutoutPercentage: 70,
+            },
+        });
+    });
+</script>
+{% endblock %} 
