@@ -6,8 +6,8 @@
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Class Attendance</h1>
-        <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-sm btn-secondary shadow-sm">
-            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Live Classes
+        <a href="{{ url_for('instructor.batch_students', batch_id=batch.id) }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Batch
         </a>
     </div>
 
@@ -24,7 +24,7 @@
                     <p><strong>Time:</strong> {{ live_class.start_time.strftime('%I:%M %p') }} - {{ live_class.end_time.strftime('%I:%M %p') }}</p>
                     <p><strong>Duration:</strong> {{ (live_class.end_time - live_class.start_time).total_seconds() // 60 }} minutes</p>
                     
-                    {% set current_time = datetime.now() %}
+                    {% set current_time = now() %}
                     <p>
                         <strong>Status:</strong>
                         {% if live_class.start_time > current_time %}
@@ -51,15 +51,16 @@
                     <h6 class="m-0 fw-bold text-primary">Attendance Summary</h6>
                 </div>
                 <div class="card-body">
+                    {% set present_count = students|selectattr('present', 'eq', true)|list|length %}
                     <div class="text-center mb-3">
-                        <div class="h1">{{ attendance_count }}/{{ students|length }}</div>
+                        <div class="h1">{{ present_count }}/{{ students|length }}</div>
                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Students Present</div>
                     </div>
                     
                     <div class="progress mb-4">
-                        <div class="progress-bar" role="progressbar" style="width: {{ (attendance_count / students|length * 100) if students|length > 0 else 0 }}%" 
-                            aria-valuenow="{{ attendance_count }}" aria-valuemin="0" aria-valuemax="{{ students|length }}">
-                            {{ (attendance_count / students|length * 100)|round|int if students|length > 0 else 0 }}%
+                        <div class="progress-bar" role="progressbar" style="width: {{ (present_count / students|length * 100) if students|length > 0 else 0 }}%" 
+                            aria-valuenow="{{ present_count }}" aria-valuemin="0" aria-valuemax="{{ students|length }}">
+                            {{ (present_count / students|length * 100)|round|int if students|length > 0 else 0 }}%
                         </div>
                     </div>
                 </div>
@@ -81,27 +82,29 @@
                                         <th>Student</th>
                                         <th>Email</th>
                                         <th>Present</th>
-                                        <th>Join Time</th>
+                                        <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for student in students %}
                                     <tr>
-                                        <td>{{ student.first_name }} {{ student.last_name }}</td>
+                                        <td>{{ student.name }}</td>
                                         <td>{{ student.email }}</td>
                                         <td>
                                             <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="attendance[]" value="{{ student.id }}" 
-                                                       id="attendance_{{ student.id }}" {% if student.id in attendance_records %}checked{% endif %}>
+                                                <input class="form-check-input" type="checkbox" name="present_students" value="{{ student.id }}" 
+                                                       id="attendance_{{ student.id }}" {% if student.present %}checked{% endif %}>
                                                 <label class="form-check-label" for="attendance_{{ student.id }}">
                                                     Present
                                                 </label>
                                             </div>
                                         </td>
                                         <td>
-                                            <input type="time" class="form-control form-control-sm" 
-                                                   name="join_time_{{ student.id }}" 
-                                                   value="{{ attendance_notes.get(student.id, '') }}">
+                                            {% if student.has_record %}
+                                                <span class="badge bg-info">Recorded</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">Not Recorded</span>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -138,7 +141,7 @@
         
         // Toggle all attendance checkboxes
         $('#toggleAll').on('change', function() {
-            $('input[name="attendance[]"]').prop('checked', $(this).is(':checked'));
+            $('input[name="present_students"]').prop('checked', $(this).is(':checked'));
         });
     });
 </script>

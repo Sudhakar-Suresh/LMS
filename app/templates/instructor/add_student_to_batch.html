@@ -23,7 +23,6 @@
                     <p><strong>Start Date:</strong> {{ batch.start_date.strftime('%d %b %Y') }}</p>
                     <p><strong>End Date:</strong> {{ batch.end_date.strftime('%d %b %Y') }}</p>
                     
-                    {% set enrolled_count = batch.enrollments|length if batch.enrollments else 0 %}
                     <p><strong>Capacity:</strong> {{ enrolled_count }}/{{ batch.max_students }}</p>
                     
                     <div class="progress mb-4">
@@ -33,7 +32,7 @@
                         </div>
                     </div>
                     
-                    {% if enrolled_count >= batch.max_students %}
+                    {% if enrolled_count >= batch.max_students and batch.max_students > 0 %}
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-triangle"></i> This batch has reached its maximum capacity.
                         </div>
@@ -61,31 +60,71 @@
         <div class="col-lg-8">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 fw-bold text-primary">Add Student by Email</h6>
+                    <h6 class="m-0 fw-bold text-primary">Find Student</h6>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('instructor.add_student_to_batch', batch_id=batch.id) }}">
                         <div class="mb-3">
-                            <label for="student_email" class="form-label">Student Email</label>
+                            <label for="student_search" class="form-label">Search by Email or Name</label>
                             <div class="input-group">
-                                <input type="email" class="form-control" id="student_email" name="student_email" 
-                                       placeholder="Enter student email address" required>
+                                <input type="text" class="form-control" id="student_search" name="student_search" 
+                                       placeholder="Enter student email or name" value="{{ search_term if search_term else '' }}" required>
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search"></i> Find & Add
+                                    <i class="fas fa-search"></i> Search
                                 </button>
                             </div>
-                            <small class="form-text text-muted">Enter the email address of a registered student to add them to this batch.</small>
+                            <small class="form-text text-muted">Enter the email address or name of a registered student to find them.</small>
                         </div>
                     </form>
+                    
+                    {% if search_performed %}
+                        <hr>
+                        <h5 class="mb-3">Search Results</h5>
+                        
+                        {% if found_students and found_students|length > 0 %}
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for student in found_students %}
+                                        <tr>
+                                            <td>{{ student.first_name }} {{ student.last_name }}</td>
+                                            <td>{{ student.email }}</td>
+                                            <td>
+                                                <form method="POST" action="{{ url_for('instructor.add_student_to_batch', batch_id=batch.id) }}">
+                                                    <input type="hidden" name="student_id" value="{{ student.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-plus"></i> Add to Batch
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No students found matching your search criteria or all matching students are already enrolled.
+                            </div>
+                        {% endif %}
+                    {% endif %}
                     
                     <hr>
                     
                     <div class="alert alert-info">
                         <h6 class="fw-bold"><i class="fas fa-info-circle"></i> Tips</h6>
                         <ul>
-                            <li>The student must already be registered in the system.</li>
-                            <li>Students will be automatically enrolled in the course associated with this batch.</li>
-                            <li>To add multiple students at once, use the "Add Multiple Students" option.</li>
+                            <li>Search by full email address for exact matches</li>
+                            <li>Search by first name, last name, or full name</li>
+                            <li>Students will be automatically enrolled in the course associated with this batch</li>
+                            <li>To add multiple students at once, use the "Add Multiple Students" option</li>
                         </ul>
                     </div>
                 </div>

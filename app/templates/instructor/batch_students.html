@@ -70,7 +70,7 @@
                                     <td>{{ student.first_name }} {{ student.last_name }}</td>
                                     <td>{{ student.email }}</td>
                                     <td>
-                                        {% set enrollment = student.batch_enrollments|selectattr('batch_id', 'equalto', batch.id)|first %}
+                                        {% set enrollment = BatchEnrollment.query.filter_by(batch_id=batch.id, student_id=student.id).first() %}
                                         {{ enrollment.enrollment_date.strftime('%Y-%m-%d') if enrollment and enrollment.enrollment_date else 'N/A' }}
                                     </td>
                                     <td>
@@ -110,7 +110,7 @@
                         <i class="fas fa-plus"></i> Schedule New Class
                     </a>
                     
-                    {% set classes = batch.live_classes|sort(attribute='scheduled_time') %}
+                    {% set classes = batch.live_classes|sort(attribute='start_time') if batch.live_classes else [] %}
                     {% if classes %}
                     <div class="table-responsive">
                         <table class="table table-bordered" id="classesTable" width="100%" cellspacing="0">
@@ -127,13 +127,13 @@
                                 {% for class in classes %}
                                 <tr>
                                     <td>{{ class.title }}</td>
-                                    <td>{{ class.scheduled_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                                    <td>{{ class.duration_minutes }} minutes</td>
+                                    <td>{{ class.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ (class.end_time - class.start_time).total_seconds() // 60 }} minutes</td>
                                     <td>
                                         {% set current_time = datetime.now() %}
-                                        {% if class.scheduled_time > current_time %}
+                                        {% if class.start_time > current_time %}
                                             <span class="badge bg-warning text-dark">Upcoming</span>
-                                        {% elif class.scheduled_time <= current_time and class.scheduled_time + timedelta(minutes=class.duration_minutes) >= current_time %}
+                                        {% elif class.start_time <= current_time and class.end_time >= current_time %}
                                             <span class="badge bg-success">In Progress</span>
                                         {% else %}
                                             <span class="badge bg-secondary">Completed</span>

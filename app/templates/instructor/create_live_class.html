@@ -6,9 +6,15 @@
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Schedule Live Class</h1>
+        {% if selected_batch %}
+        <a href="{{ url_for('instructor.batch_students', batch_id=selected_batch.id) }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Batch
+        </a>
+        {% else %}
         <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-sm btn-secondary shadow-sm">
             <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Live Classes
         </a>
+        {% endif %}
     </div>
 
     <div class="row">
@@ -29,7 +35,7 @@
                             <select class="form-select" id="batch_id" name="batch_id" required>
                                 <option value="">Select Batch</option>
                                 {% for batch in batches %}
-                                <option value="{{ batch.id }}" {% if batch.id == request.args.get('batch_id', type=int) %}selected{% endif %}>
+                                <option value="{{ batch.id }}" {% if selected_batch and batch.id == selected_batch.id %}selected{% endif %}>
                                     {{ batch.name }} - {{ batch.course.title }}
                                 </option>
                                 {% endfor %}
@@ -88,7 +94,11 @@
                         </div>
                         
                         <div class="text-end mt-4">
+                            {% if selected_batch %}
+                            <a href="{{ url_for('instructor.batch_students', batch_id=selected_batch.id) }}" class="btn btn-secondary">Cancel</a>
+                            {% else %}
                             <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-secondary">Cancel</a>
+                            {% endif %}
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-calendar-plus"></i> Schedule Class
                             </button>

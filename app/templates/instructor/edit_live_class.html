@@ -6,8 +6,8 @@
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Edit Live Class</h1>
-        <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-sm btn-secondary shadow-sm">
-            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Live Classes
+        <a href="{{ url_for('instructor.batch_students', batch_id=live_class.batch_id) }}" class="btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Batch
         </a>
     </div>
 
@@ -41,14 +41,14 @@
                                 <div class="mb-3">
                                     <label for="scheduled_date" class="form-label">Date</label>
                                     <input type="date" class="form-control" id="scheduled_date" name="scheduled_date" 
-                                           value="{{ live_class.start_time.strftime('%Y-%m-%d') }}" required>
+                                           value="{{ scheduled_date }}" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="scheduled_time" class="form-label">Time</label>
                                     <input type="time" class="form-control" id="scheduled_time" name="scheduled_time" 
-                                           value="{{ live_class.start_time.strftime('%H:%M') }}" required>
+                                           value="{{ scheduled_time }}" required>
                                 </div>
                             </div>
                         </div>
@@ -56,7 +56,7 @@
                         <div class="mb-3">
                             <label for="duration_minutes" class="form-label">Duration (minutes)</label>
                             <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" 
-                                   value="{{ (live_class.end_time - live_class.start_time).total_seconds() // 60 }}" min="15" step="5" required>
+                                   value="{{ duration_minutes }}" min="15" step="5" required>
                         </div>
                         
                         <div class="mb-3">
@@ -89,7 +89,7 @@
                         </div>
                         
                         <div class="text-end mt-4">
-                            <a href="{{ url_for('instructor.live_classes') }}" class="btn btn-secondary">Cancel</a>
+                            <a href="{{ url_for('instructor.batch_students', batch_id=live_class.batch_id) }}" class="btn btn-secondary">Cancel</a>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Save Changes
                             </button>
@@ -105,7 +105,7 @@
                     <h6 class="m-0 fw-bold text-primary">Class Status</h6>
                 </div>
                 <div class="card-body">
-                    {% set current_time = datetime.now() %}
+                    {% set current_time = now() %}
                     {% if live_class.start_time > current_time %}
                         <div class="alert alert-warning">
                             <h5><i class="fas fa-clock"></i> Upcoming</h5>
@@ -188,7 +188,7 @@
         });
         
         // Countdown timer for upcoming classes
-        {% if live_class.start_time > current_time %}
+        {% if live_class.start_time > now() %}
             const classTime = new Date("{{ live_class.start_time.strftime('%Y-%m-%d %H:%M:%S') }}");
             
             function updateCountdown() {

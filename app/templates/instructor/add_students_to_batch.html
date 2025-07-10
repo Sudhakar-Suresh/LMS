@@ -31,44 +31,70 @@
                         </div>
                     </div>
                     
-                    {% if enrolled_count >= batch.max_students %}
+                    {% if enrolled_count >= batch.max_students and batch.max_students > 0 %}
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-triangle"></i> This batch has reached its maximum capacity.
                         </div>
                     {% endif %}
+                    
+                    {% if batch.max_students > 0 %}
+                        <p><strong>Available Slots:</strong> {{ batch.max_students - enrolled_count }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Search Students</h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('instructor.add_students_to_batch', batch_id=batch.id) }}">
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" name="search" placeholder="Search by name or email" value="{{ search_term }}">
+                            <button class="btn btn-outline-primary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            {% if search_term %}
+                                <a href="{{ url_for('instructor.add_students_to_batch', batch_id=batch.id) }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                    
+                    <div class="mt-3">
+                        <p class="mb-0"><strong>Tip:</strong> Select multiple students using checkboxes</p>
+                    </div>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-8">
             <div class="card shadow mb-4">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 fw-bold text-primary">Available Students</h6>
+                    <span class="badge bg-primary">{{ available_students|length }} student(s) found</span>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('instructor.add_students_to_batch', batch_id=batch.id) }}">
-                        <div class="mb-3">
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="searchInput" placeholder="Search students...">
-                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
+                    <form method="POST" action="{{ url_for('instructor.add_students_to_batch', batch_id=batch.id) }}" id="enrollForm">
                         {% if available_students %}
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="selectAll">
+                                    <label class="form-check-label" for="selectAll">
+                                        <strong>Select All Students</strong>
+                                    </label>
+                                </div>
+                            </div>
+                            
                             <div class="table-responsive">
                                 <table class="table table-bordered" id="studentsTable" width="100%" cellspacing="0">
                                     <thead>
                                         <tr>
-                                            <th style="width: 5%">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="selectAll">
-                                                </div>
-                                            </th>
+                                            <th style="width: 5%">Select</th>
                                             <th>Name</th>
                                             <th>Email</th>
-                                            <th>Enrolled Courses</th>
+                                            <th>Enrolled Batches</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -81,21 +107,28 @@
                                             </td>
                                             <td>{{ student.first_name }} {{ student.last_name }}</td>
                                             <td>{{ student.email }}</td>
-                                            <td>{{ student.enrolled_courses|length }}</td>
+                                            <td>{{ student.enrolled_courses_count }}</td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
                             </div>
                             
-                            <div class="text-end mt-3">
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div>
+                                    <span id="selectedCount" class="badge bg-secondary">0 selected</span>
+                                </div>
                                 <button type="submit" class="btn btn-primary" id="enrollButton" disabled>
                                     <i class="fas fa-user-plus"></i> Enroll Selected Students
                                 </button>
                             </div>
                         {% else %}
                             <div class="alert alert-info">
-                                <p>No available students found. All students are already enrolled in this batch or there are no student accounts.</p>
+                                {% if search_term %}
+                                    <p>No students found matching your search criteria or all matching students are already enrolled in this batch.</p>
+                                {% else %}
+                                    <p>No available students found. All students are already enrolled in this batch or there are no student accounts.</p>
+                                {% endif %}
                             </div>
                         {% endif %}
                     </form>
@@ -109,68 +142,69 @@
 {% block scripts %}
 <script>
     $(document).ready(function() {
-        // Initialize DataTable
-        const table = $('#studentsTable').DataTable({
-            "pageLength": 25,
-            "order": [[1, "asc"]],
-            "searching": false // We'll handle search manually
-        });
-        
-        // Handle search input
-        $('#searchInput').on('keyup', function() {
-            const value = $(this).val().toLowerCase();
-            
-            $('#studentsTable tbody tr').each(function() {
-                const name = $(this).find('td:eq(1)').text().toLowerCase();
-                const email = $(this).find('td:eq(2)').text().toLowerCase();
-                
-                if (name.includes(value) || email.includes(value)) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        });
-        
-        // Clear search
-        $('#clearSearch').on('click', function() {
-            $('#searchInput').val('');
-            $('#studentsTable tbody tr').show();
-        });
-        
-        // Select all checkbox
+        // Handle select all checkbox
         $('#selectAll').on('change', function() {
             const isChecked = $(this).prop('checked');
-            $('.student-check:visible').prop('checked', isChecked);
+            $('.student-check').prop('checked', isChecked);
+            updateSelectedCount();
             updateEnrollButton();
         });
         
         // Individual checkbox change
         $('.student-check').on('change', function() {
+            updateSelectedCount();
             updateEnrollButton();
             
             // Update select all checkbox
-            const allVisible = $('.student-check:visible').length;
-            const allChecked = $('.student-check:visible:checked').length;
+            const allVisible = $('.student-check').length;
+            const allChecked = $('.student-check:checked').length;
             $('#selectAll').prop('checked', allVisible === allChecked && allVisible > 0);
         });
+        
+        // Update selected count display
+        function updateSelectedCount() {
+            const checkedCount = $('.student-check:checked').length;
+            $('#selectedCount').text(`${checkedCount} selected`);
+            
+            if (checkedCount > 0) {
+                $('#selectedCount').removeClass('bg-secondary').addClass('bg-primary');
+            } else {
+                $('#selectedCount').removeClass('bg-primary').addClass('bg-secondary');
+            }
+        }
         
         // Update enroll button state
         function updateEnrollButton() {
             const checkedCount = $('.student-check:checked').length;
             const remainingSlots = {{ batch.max_students - enrolled_count }};
             
-            if (checkedCount > 0 && (checkedCount <= remainingSlots || remainingSlots < 0)) {
-                $('#enrollButton').prop('disabled', false);
-                $('#enrollButton').html(`<i class="fas fa-user-plus"></i> Enroll ${checkedCount} Student${checkedCount > 1 ? 's' : ''}`);
-            } else if (checkedCount > remainingSlots && remainingSlots >= 0) {
-                $('#enrollButton').prop('disabled', true);
-                $('#enrollButton').html(`<i class="fas fa-exclamation-triangle"></i> Only ${remainingSlots} slot${remainingSlots > 1 ? 's' : ''} available`);
+            if (checkedCount > 0) {
+                if (remainingSlots < 0 || checkedCount <= remainingSlots) {
+                    $('#enrollButton').prop('disabled', false);
+                    $('#enrollButton').html(`<i class="fas fa-user-plus"></i> Enroll ${checkedCount} Student${checkedCount > 1 ? 's' : ''}`);
+                } else {
+                    $('#enrollButton').prop('disabled', true);
+                    $('#enrollButton').html(`<i class="fas fa-exclamation-triangle"></i> Only ${remainingSlots} slot${remainingSlots !== 1 ? 's' : ''} available`);
+                }
             } else {
                 $('#enrollButton').prop('disabled', true);
                 $('#enrollButton').html(`<i class="fas fa-user-plus"></i> Enroll Selected Students`);
             }
         }
+        
+        // Initialize DataTable with search disabled (we use our own search)
+        $('#studentsTable').DataTable({
+            "paging": true,
+            "pageLength": 25,
+            "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            "ordering": true,
+            "order": [[1, "asc"]],
+            "searching": false,
+            "info": true,
+            "language": {
+                "emptyTable": "No students available for enrollment"
+            }
+        });
     });
 </script>
 {% endblock %} 
